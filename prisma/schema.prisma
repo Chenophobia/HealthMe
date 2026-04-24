@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  name       String
+  heightCm   Float
+  dob        DateTime
+  createdAt  DateTime @default(now())
+}
+
+enum MetricSource {
+  PHOTO
+  MANUAL
+}
+
+model BodyMetric {
+  id                    Int          @id @default(autoincrement())
+  capturedAt            DateTime
+  weightKg              Float?
+  bmi                   Float?
+  bodyFatPct            Float?
+  bodyFatKg             Float?
+  skeletalMuscleKg      Float?
+  skeletalMusclePct     Float?
+  subcutaneousFatPct    Float?
+  bmrKcal               Int?
+  metabolicAge          Int?
+  fatFreeMassKg         Float?
+  visceralFat           Float?
+  bodyWaterKg           Float?
+  bodyWaterPct          Float?
+  muscleMassKg          Float?
+  muscleMassPct         Float?
+  boneMassKg            Float?
+  boneMassPct           Float?
+  proteinKg             Float?
+  proteinPct            Float?
+  source                MetricSource
+  photoPath             String?
+  rawOcrJson            String?
+  createdAt             DateTime     @default(now())
+}
+
+model Recipe {
+  id        Int       @id @default(autoincrement())
+  name      String
+  kcal      Int
+  proteinG  Float
+  carbsG    Float
+  fatG      Float
+  servings  Float     @default(1)
+  notes     String?
+  createdAt DateTime  @default(now())
+  mealLogs  MealLog[]
+}
+
+enum MealSlot {
+  BREAKFAST
+  LUNCH
+  SNACK
+  DINNER
+}
+
+model MealLog {
+  id            Int      @id @default(autoincrement())
+  consumedAt    DateTime
+  slot          MealSlot
+  recipeId      Int?
+  recipe        Recipe?  @relation(fields: [recipeId], references: [id])
+  servings      Float?
+  quickName     String?
+  quickKcal     Int?
+  quickProteinG Float?
+  quickCarbsG   Float?
+  quickFatG     Float?
+  createdAt     DateTime @default(now())
+}
+
+enum ActivitySource {
+  SHORTCUT
+  MANUAL
+}
+
+model ActivityLog {
+  id         Int            @id @default(autoincrement())
+  loggedAt   DateTime
+  activeKcal Int
+  source     ActivitySource
+  createdAt  DateTime       @default(now())
+
+  @@unique([loggedAt, source])
+}
+
+enum GoalMetric {
+  WEIGHT_KG
+  BODY_FAT_PCT
+  SKELETAL_MUSCLE_KG
+  BMI
+  MUSCLE_MASS_KG
+  VISCERAL_FAT
+}
+
+model Goal {
+  id          Int        @id @default(autoincrement())
+  metric      GoalMetric
+  targetValue Float
+  targetDate  DateTime
+  active      Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+}
