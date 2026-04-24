@@ -29,6 +29,7 @@ data/
 coverage/
 playwright-report/
 test-results/
+test-db-*/
 
 # Brainstorm ephemera
 .superpowers/
