@@ -1,20 +1,17 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Geist } from "next/font/google";
-import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
   title: "HealthMe",
-  description: "Personal health tracking",
+  description: "Personal health tracker",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)}>
-      <body style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

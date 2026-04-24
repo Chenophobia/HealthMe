@@ -81,6 +81,16 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* HealthMe ink-brush tokens (light = washi paper) */
+  --ink: #1a1410;
+  --ink-soft: #4a3e32;
+  --ink-faded: #8a7a68;
+  --paper: #f4ecd8;
+  --paper-accent: #ebe0c4;
+  --accent: #8b2a2a;
+  --accent-2: #3a5a3a;
+  --divider: rgba(30, 20, 15, 0.15);
 }
 
 .dark {
@@ -115,16 +125,25 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* HealthMe ink-brush tokens (dark = ink wash) */
+  --ink: #e8dcc2;
+  --ink-soft: #c4b392;
+  --ink-faded: #8a7a60;
+  --paper: #1a1612;
+  --paper-accent: #23201a;
+  --accent: #d85050;
+  --accent-2: #7ab07a;
+  --divider: rgba(232, 220, 194, 0.12);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
+  html, body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Courier New', Courier, monospace;
   }
 }
