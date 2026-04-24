@@ -11,7 +11,7 @@ Two-container docker-compose stack.
 ```
 ┌─────────────────────┐    ┌──────────────────────┐
 │  web                │    │  ollama (sidecar)    │
-│  Next.js 16         │◄──►│  qwen2-vl:7b         │
+│  Next.js 16         │◄──►│  qwen2.5vl:7b         │
 │  Prisma + SQLite    │    │  Vision OCR          │
 │  TypeScript         │    │                      │
 │  Tailwind+shadcn/ui │    │                      │
@@ -48,7 +48,7 @@ git clone https://github.com/Chenophobia/HealthMe.git
 cd HealthMe
 cp .env.example .env   # adjust APP_TZ if not America/New_York
 docker compose up -d --build
-docker compose exec ollama ollama pull qwen2-vl:7b
+docker compose exec ollama ollama pull qwen2.5vl:7b
 ```
 
 Webapp is now at `http://localhost:3000` (and `http://<mac>.local:3000` from phone).

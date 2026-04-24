@@ -6,7 +6,7 @@ services:
     environment:
       DATABASE_URL: "file:./data/db/healthme.db"
       OLLAMA_URL: "http://ollama:11434"
-      OLLAMA_MODEL: "qwen2-vl:7b"
+      OLLAMA_MODEL: "qwen2.5vl:7b"
       APP_TZ: "${APP_TZ:-America/New_York}"
     volumes:
       - ./data:/app/data

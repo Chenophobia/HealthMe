@@ -5,7 +5,7 @@ Self-hosted personal health tracking webapp. Single user, LAN-only.
 ## Stack
 - Next.js 16 (App Router, TypeScript) + Tailwind v4 + shadcn/ui
 - Prisma 6 + SQLite (file in `data/db/`)
-- Ollama sidecar with `qwen2-vl:7b` vision model for RENPHO OCR
+- Ollama sidecar with `qwen2.5vl:7b` vision model for RENPHO OCR
 - Vitest (unit + integration), Playwright (optional E2E)
 - Docker Compose: `web` + `ollama` containers
 
