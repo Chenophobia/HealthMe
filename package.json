@@ -1,11 +1,14 @@
 {
-  "name": "nextjs-scaffold",
+  "name": "healthme",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
