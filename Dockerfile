@@ -6,6 +6,7 @@ RUN npm ci
 
 FROM node:20-alpine AS builder
 WORKDIR /app
+ENV DATABASE_URL="file:./data/db/healthme.db"
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
