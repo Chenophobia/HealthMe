@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { GoalsClient } from "./goals-client";
 import { METRIC_FIELDS } from "@/lib/metric-fields";

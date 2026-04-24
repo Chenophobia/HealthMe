@@ -1,6 +1,7 @@
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "@prisma/client";
 
 export async function createTestDb(): Promise<{ prisma: PrismaClient; cleanup: () => void; dbUrl: string }> {
@@ -11,7 +12,8 @@ export async function createTestDb(): Promise<{ prisma: PrismaClient; cleanup: (
     env: { ...process.env, DATABASE_URL: dbUrl },
     stdio: "ignore",
   });
-  const prisma = new PrismaClient({ datasources: { db: { url: dbUrl } } });
+  const adapter = new PrismaBetterSqlite3({ url: dbUrl });
+  const prisma = new PrismaClient({ adapter });
   return {
     prisma,
     dbUrl,

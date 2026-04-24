@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { MealsClient } from "./meals-client";
 import { normalizeToLocalMidnight } from "@/lib/date-normalize";

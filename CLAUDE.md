@@ -4,7 +4,7 @@ Self-hosted personal health tracking webapp. Single user, LAN-only.
 
 ## Stack
 - Next.js 16 (App Router, TypeScript) + Tailwind v4 + shadcn/ui
-- Prisma 6 + SQLite (file in `data/db/`)
+- Prisma 7 + SQLite via `@prisma/adapter-better-sqlite3` (file in `data/db/`)
 - Ollama sidecar with `qwen2.5vl:7b` vision model for RENPHO OCR
 - Vitest (unit + integration), Playwright (optional E2E)
 - Docker Compose: `web` + `ollama` containers
@@ -50,4 +50,5 @@ Self-hosted personal health tracking webapp. Single user, LAN-only.
 ## Config quirks
 - `vitest.config.mts` (not `.ts`) — avoids ERR_REQUIRE_ESM on Node 22 with Vitest 4 + std-env
 - shadcn uses `sonner` primitive (toast deprecated in shadcn 4.x)
-- Prisma 6 writes `prisma.config.ts` on init — loads `.env` via `dotenv/config`
+- Prisma 7: datasource url lives in `prisma.config.ts` only (not `schema.prisma`). All PrismaClient instances need `adapter: new PrismaBetterSqlite3({ url })`.
+- Requires Node 20.19+ or 22.12+. Docker base is `node:22-alpine` with python/make/g++ for `better-sqlite3` native build.
