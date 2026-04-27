@@ -10,6 +10,7 @@ const CreateSchema = z.object({
   fatG: z.number().nonnegative(),
   servings: z.number().positive().default(1),
   notes: z.string().optional(),
+  category: z.enum(["HEAVY", "LIGHT"]).default("HEAVY"),
 });
 
 export async function GET() {

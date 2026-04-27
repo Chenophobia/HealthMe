@@ -10,6 +10,7 @@ const UpdateSchema = z.object({
   fatG: z.number().nonnegative().optional(),
   servings: z.number().positive().optional(),
   notes: z.string().optional(),
+  category: z.enum(["HEAVY", "LIGHT"]).optional(),
 });
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

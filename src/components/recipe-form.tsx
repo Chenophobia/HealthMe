@@ -1,13 +1,21 @@
 "use client";
 import { useState } from "react";
 
-interface Recipe { id: number; name: string; kcal: number; proteinG: number; carbsG: number; fatG: number; servings: number; notes: string | null; }
+interface Recipe {
+  id: number; name: string; kcal: number; proteinG: number; carbsG: number; fatG: number;
+  servings: number; notes: string | null; category?: "HEAVY" | "LIGHT";
+}
 
 export function RecipeForm({ recipe, onClose }: { recipe: Recipe | null; onClose: () => void }) {
   const [r, setR] = useState({
-    name: recipe?.name ?? "", kcal: recipe?.kcal ?? 0, proteinG: recipe?.proteinG ?? 0,
-    carbsG: recipe?.carbsG ?? 0, fatG: recipe?.fatG ?? 0, servings: recipe?.servings ?? 1,
+    name: recipe?.name ?? "",
+    kcal: recipe?.kcal ?? 0,
+    proteinG: recipe?.proteinG ?? 0,
+    carbsG: recipe?.carbsG ?? 0,
+    fatG: recipe?.fatG ?? 0,
+    servings: recipe?.servings ?? 1,
     notes: recipe?.notes ?? "",
+    category: (recipe?.category ?? "HEAVY") as "HEAVY" | "LIGHT",
   });
   const save = async () => {
     const url = recipe ? `/api/recipes/${recipe.id}` : "/api/recipes";
@@ -24,6 +32,18 @@ export function RecipeForm({ recipe, onClose }: { recipe: Recipe | null; onClose
         <h2 className="font-bold text-lg">{recipe ? "Edit" : "New"} Recipe</h2>
         <input placeholder="Name" value={r.name} onChange={(e) => setR({ ...r, name: e.target.value })}
           className="w-full px-3 py-2 rounded" style={{ background: "var(--paper-accent)", color: "var(--ink)" }} />
+        <div className="flex gap-2">
+          {(["HEAVY", "LIGHT"] as const).map((c) => (
+            <button key={c} onClick={() => setR({ ...r, category: c })}
+              className="flex-1 px-3 py-2 rounded text-xs uppercase tracking-wider"
+              style={{
+                background: r.category === c ? "var(--accent)" : "var(--paper-accent)",
+                color: r.category === c ? "#f4ecd8" : "var(--ink-soft)",
+              }}>
+              {c === "HEAVY" ? "Heavy (lunch/dinner)" : "Light (breakfast/snack)"}
+            </button>
+          ))}
+        </div>
         {(["kcal", "proteinG", "carbsG", "fatG", "servings"] as const).map((k) => (
           <label key={k} className="flex justify-between items-center">
             <span className="text-sm">{k}</span>

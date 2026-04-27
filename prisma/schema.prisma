@@ -47,16 +47,22 @@ model BodyMetric {
   createdAt             DateTime     @default(now())
 }
 
+enum RecipeCategory {
+  HEAVY
+  LIGHT
+}
+
 model Recipe {
-  id        Int       @id @default(autoincrement())
+  id        Int            @id @default(autoincrement())
   name      String
   kcal      Int
   proteinG  Float
   carbsG    Float
   fatG      Float
-  servings  Float     @default(1)
+  servings  Float          @default(1)
   notes     String?
-  createdAt DateTime  @default(now())
+  category  RecipeCategory @default(HEAVY)
+  createdAt DateTime       @default(now())
   mealLogs  MealLog[]
 }
 

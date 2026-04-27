@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-interface Recipe { id: number; name: string; kcal: number; proteinG: number; carbsG: number; fatG: number; servings: number; }
+interface Recipe { id: number; name: string; kcal: number; proteinG: number; carbsG: number; fatG: number; servings: number; category?: "HEAVY" | "LIGHT"; }
 
 export function AddMealModal({ date, slot, recipes, onClose }: {
   date: string; slot: string; recipes: Recipe[]; onClose: () => void;
@@ -20,7 +20,15 @@ export function AddMealModal({ date, slot, recipes, onClose }: {
     onClose();
   };
 
-  const filtered = recipes.filter((r) => r.name.toLowerCase().includes(search.toLowerCase()));
+  const slotPreferred = slot === "LUNCH" || slot === "DINNER" ? "HEAVY" : "LIGHT";
+  const filtered = recipes
+    .filter((r) => r.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      const aMatch = a.category === slotPreferred ? 0 : 1;
+      const bMatch = b.category === slotPreferred ? 0 : 1;
+      if (aMatch !== bMatch) return aMatch - bMatch;
+      return a.name.localeCompare(b.name);
+    });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.5)" }}>
