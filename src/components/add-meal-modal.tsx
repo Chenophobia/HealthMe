@@ -7,7 +7,9 @@ export function AddMealModal({ date, slot, recipes, onClose }: {
   date: string; slot: string; recipes: Recipe[]; onClose: () => void;
 }) {
   const [tab, setTab] = useState<"recipe" | "quick">("recipe");
-  const [recipeId, setRecipeId] = useState<number | null>(recipes[0]?.id ?? null);
+  const initialCategory: "HEAVY" | "LIGHT" = slot === "LUNCH" || slot === "DINNER" ? "HEAVY" : "LIGHT";
+  const initialRecipe = recipes.find((r) => (r.category ?? "HEAVY") === initialCategory);
+  const [recipeId, setRecipeId] = useState<number | null>(initialRecipe?.id ?? null);
   const [servings, setServings] = useState(1);
   const [quick, setQuick] = useState({ name: "", kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 });
   const [search, setSearch] = useState("");
@@ -20,15 +22,11 @@ export function AddMealModal({ date, slot, recipes, onClose }: {
     onClose();
   };
 
-  const slotPreferred = slot === "LUNCH" || slot === "DINNER" ? "HEAVY" : "LIGHT";
+  const slotCategory: "HEAVY" | "LIGHT" = slot === "LUNCH" || slot === "DINNER" ? "HEAVY" : "LIGHT";
   const filtered = recipes
+    .filter((r) => (r.category ?? "HEAVY") === slotCategory)
     .filter((r) => r.name.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => {
-      const aMatch = a.category === slotPreferred ? 0 : 1;
-      const bMatch = b.category === slotPreferred ? 0 : 1;
-      if (aMatch !== bMatch) return aMatch - bMatch;
-      return a.name.localeCompare(b.name);
-    });
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.5)" }}>
