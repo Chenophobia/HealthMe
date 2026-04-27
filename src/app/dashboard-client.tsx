@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { CalorieBar } from "@/components/calorie-bar";
 import { MetricCard } from "@/components/metric-card";
+import { ActivityEntry } from "@/components/activity-entry";
 import { linearRegression, project } from "@/lib/regression";
 import type { MetricField } from "@/lib/metric-fields";
 
@@ -80,6 +81,7 @@ export function DashboardClient({ metrics, primary, secondary, goals, intake, bm
           + Capture RENPHO
         </Link>
       </div>
+      <ActivityEntry initialKcal={active} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {primary.map(cardFor)}
       </div>
