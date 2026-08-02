@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd agent that runs deploy/update.sh every 5 minutes.
+
+  This is a template: launchd does not expand ~ in ProgramArguments, so the
+  paths below must be absolute — but hardcoding one operator's home
+  directory into a public repo is needless disclosure. __REPO__ is therefore
+  substituted at install time with the checkout's real path.
+
+  Install (one time, from the repo root, as the logged-in user):
+    sed "s|__REPO__|$PWD|g" deploy/com.chenophobia.health-me.update.plist \
+      > ~/Library/LaunchAgents/com.chenophobia.health-me.update.plist
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.chenophobia.health-me.update.plist
+
+  Uninstall:
+    launchctl bootout gui/$(id -u)/com.chenophobia.health-me.update
+
+  Logs land in deploy/update.log (quiet unless a deploy actually happened
+  or something failed).
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.chenophobia.health-me.update</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__REPO__/deploy/update.sh</string>
+  </array>
+  <key>StartInterval</key>
+  <integer>300</integer>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- launchd jobs get a minimal PATH; docker lives in one of these. -->
+    <key>PATH</key>
+    <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>__REPO__/deploy/update.log</string>
+  <key>StandardErrorPath</key>
+  <string>__REPO__/deploy/update.log</string>
+</dict>
+</plist>

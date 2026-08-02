@@ -1,0 +1,20 @@
+# Pull-based deployment: runs the image CI publishes to GHCR instead of
+# building from source on the host. The root docker-compose.yml (build: .)
+# remains the build-from-source fallback.
+#
+# Paths are relative to this file, so ../data and ../.env are the same data
+# directory and env file the root compose file uses — switching between the
+# two never touches state.
+name: health-me
+services:
+  app:
+    image: ghcr.io/chenophobia/health-me:latest
+    container_name: health-me
+    ports:
+      - '127.0.0.1:3002:3002'
+    env_file: ../.env
+    environment:
+      DATA_DIR: /app/data
+    volumes:
+      - ../data:/app/data
+    restart: unless-stopped
