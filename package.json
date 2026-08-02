@@ -18,6 +18,7 @@
     "lint": "prettier --check . && eslint .",
     "format": "prettier --write .",
     "db:generate": "drizzle-kit generate",
+    "icons": "tsx scripts/generate-icons.ts",
     "create-user": "tsx scripts/create-user.ts",
     "set-password": "tsx scripts/set-password.ts",
     "reseed": "tsx scripts/reseed.ts"

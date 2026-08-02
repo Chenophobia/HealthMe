@@ -2,8 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- viewport-fit=cover lets the app draw into the notch/home-indicator
+         areas; app.css pads the fixed chrome back out with env(safe-area-*). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- iOS ignores the manifest's icons when you Add to Home Screen and looks
+         only for an apple-touch-icon, which must be a PNG — an SVG favicon
+         alone leaves the home screen with a blank/screenshot tile. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="health-me" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#e9ecf1" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0e1116" />
+
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover" class="bg-paper text-ink">

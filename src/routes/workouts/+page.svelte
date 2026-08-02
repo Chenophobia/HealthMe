@@ -14,14 +14,17 @@
 
 <svelte:head><title>Workouts — health-me</title></svelte:head>
 
-<h1 class="text-2xl font-bold">Workouts</h1>
-<p class="text-ink-muted mt-1 text-sm">{data.date} · {weekdayOf(data.date)}</p>
+<header>
+  <p class="eyebrow text-ink-muted">{weekdayOf(data.date)} · {data.date}</p>
+  <h1 class="mt-2 text-2xl font-semibold tracking-tight">Workouts</h1>
+</header>
 
 {#if data.scheduled === null}
-  <div class="bg-surface border-hairline mt-4 rounded-lg border p-4 text-sm">
-    Rest day — optional 8-min home core (see <a href="/plan" class="text-accent font-medium">Plan</a
-    >).
-  </div>
+  <p class="text-ink-muted mt-3 text-sm">
+    Rest day. Optional 8-minute home core is in the <a href="/plan" class="text-accent font-medium"
+      >plan</a
+    >.
+  </p>
 {/if}
 
 <!-- ============================= Session switcher ============================= -->
@@ -31,28 +34,34 @@
     <a
       href="?session={type}"
       aria-current={isActive ? 'page' : undefined}
-      class="rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap {isActive
+      class="flex min-h-11 flex-1 items-center justify-center rounded-xs px-3 text-sm font-medium whitespace-nowrap {isActive
         ? 'bg-accent text-on-accent'
-        : 'bg-surface border-hairline text-ink-muted hover:text-ink border'}"
+        : 'card text-ink-muted hover:text-ink'}"
     >
-      {SESSION_LABELS[type]}{data.scheduled === type ? ' (today)' : ''}
+      {SESSION_LABELS[type]}{data.scheduled === type ? ' · today' : ''}
     </a>
   {/each}
 </nav>
 
-<!-- ============================= Exercises ============================= -->
-<section class="mt-6 flex flex-col gap-4">
-  {#each data.exercises as exercise (exercise.id)}
-    <div class="bg-surface border-hairline rounded-lg border p-4">
-      <div class="flex items-baseline justify-between gap-2">
-        <h2 class="font-semibold">{exercise.name}</h2>
-        <span class="text-ink-muted text-sm whitespace-nowrap">
-          {repsLabel(exercise.sets, exercise.repsMin, exercise.repsMax)}
-        </span>
+<!-- ============================= Exercises =============================
+
+     Numbered, because a session is run in order — the index is the running
+     order, not decoration. -->
+<ol class="mt-6 flex flex-col gap-2">
+  {#each data.exercises as exercise, i (exercise.id)}
+    <li class="card flex items-start gap-4 p-4">
+      <span class="eyebrow text-ink-muted mt-1 tabular-nums">{String(i + 1).padStart(2, '0')}</span>
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <h2 class="font-medium">{exercise.name}</h2>
+          <span class="tabular text-ink font-mono text-sm whitespace-nowrap">
+            {repsLabel(exercise.sets, exercise.repsMin, exercise.repsMax)}
+          </span>
+        </div>
+        {#if exercise.dumbbellSwap}
+          <p class="text-ink-muted mt-1 text-sm">Dumbbell swap: {exercise.dumbbellSwap}</p>
+        {/if}
       </div>
-      {#if exercise.dumbbellSwap}
-        <p class="text-ink-muted text-sm">DB: {exercise.dumbbellSwap}</p>
-      {/if}
-    </div>
+    </li>
   {/each}
-</section>
+</ol>

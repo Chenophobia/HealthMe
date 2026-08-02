@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { KCAL_TARGET, PROTEIN_TARGET_G, PROTEIN_AIM_G } from '$lib/targets';
   import { weekdayOf } from '$lib/dates';
+  import Gauge from '$lib/components/Gauge.svelte';
   import type { PageData, ActionData } from './$types';
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -21,25 +22,19 @@
     { type: 'snack', label: 'Snacks' }
   ];
 
-  const kcalOver = $derived(data.totals.kcal > KCAL_TARGET);
-  const proteinUnder = $derived(data.totals.proteinG < PROTEIN_TARGET_G);
   const isToday = $derived(data.date === data.today);
 </script>
 
 <svelte:head><title>Meals — health-me</title></svelte:head>
 
-<h1 class="text-2xl font-bold">Meals</h1>
-<p class="text-ink-muted mt-1 text-sm">{data.date} · {weekdayOf(data.date)}</p>
+<header>
+  <p class="eyebrow text-ink-muted">{weekdayOf(data.date)} · {data.date}</p>
+  <h1 class="mt-2 text-2xl font-semibold tracking-tight">Meals</h1>
+</header>
 
 <!-- ============================= Date bar ============================= -->
-<div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
-  <a
-    href="?date={data.prevDate}"
-    aria-label="Previous day"
-    class="border-hairline bg-surface text-ink-muted hover:text-ink rounded-md border px-3 py-2"
-  >
-    ←
-  </a>
+<nav class="mt-4 flex items-center gap-2" aria-label="Choose a day">
+  <a href="?date={data.prevDate}" aria-label="Previous day" class="btn-quiet">←</a>
   <input
     type="date"
     value={data.date}
@@ -48,62 +43,56 @@
       const v = e.currentTarget.value;
       if (v) goto(`?date=${v}`);
     }}
-    class="border-hairline bg-surface rounded-md border px-3 py-2"
+    class="field flex-1"
   />
-  <a
-    href="?date={data.nextDate}"
-    aria-label="Next day"
-    class="border-hairline bg-surface text-ink-muted hover:text-ink rounded-md border px-3 py-2"
-  >
-    →
-  </a>
+  <a href="?date={data.nextDate}" aria-label="Next day" class="btn-quiet">→</a>
   {#if !isToday}
-    <a href="/meals" class="text-accent font-medium whitespace-nowrap">Back to today</a>
+    <a href="/meals" class="btn-quiet text-accent">Today</a>
   {/if}
-</div>
+</nav>
 
 <!-- ============================= Totals ============================= -->
-<div class="bg-surface border-hairline mt-4 rounded-lg border p-4">
-  <h2 class="font-semibold">{isToday ? "Today's totals" : `Totals · ${data.date}`}</h2>
-  <p class="mt-2 text-sm">
-    <span class={kcalOver ? 'text-over font-medium' : 'font-medium'}
-      >{data.totals.kcal} / {KCAL_TARGET} kcal</span
-    >
-    ·
-    <span class={proteinUnder ? 'text-over font-medium' : 'font-medium'}
-      >{data.totals.proteinG} / {PROTEIN_TARGET_G}+ g protein</span
-    >
+<section class="card mt-4 p-4 sm:p-5">
+  <div class="flex flex-col gap-5 sm:flex-row sm:gap-8">
+    <div class="flex-1">
+      <Gauge label="Calories" value={data.totals.kcal} target={KCAL_TARGET} unit="kcal" />
+    </div>
+    <div class="flex-1">
+      <Gauge
+        label="Protein"
+        value={data.totals.proteinG}
+        target={PROTEIN_TARGET_G}
+        aim={PROTEIN_AIM_G}
+        unit="g"
+        kind="floor"
+      />
+    </div>
+  </div>
+  <p class="text-ink-muted mt-4 text-xs">
+    The protein bar runs to the {PROTEIN_AIM_G} g aim; the notch is the {PROTEIN_TARGET_G} g floor.
   </p>
-  <p class="text-ink-muted mt-1 text-xs">Aim for {PROTEIN_AIM_G} g protein when you can.</p>
-</div>
+</section>
 
-<!-- ============================= Today's log ============================= -->
-<section class="mt-6">
-  <h2 class="text-xl font-bold">{isToday ? "Today's log" : `Log · ${data.date}`}</h2>
-  <div class="bg-surface border-hairline mt-3 rounded-lg border p-4">
+<!-- ============================= The day's log ============================= -->
+<section class="mt-8">
+  <h2 class="eyebrow text-ink-muted">Logged{isToday ? ' today' : ` on ${data.date}`}</h2>
+  <div class="card mt-3">
     {#if data.logs.length === 0}
-      <p class="text-ink-muted text-sm">
-        Nothing logged {isToday ? 'yet today' : `on ${data.date}`}.
-      </p>
+      <p class="text-ink-muted p-4 text-sm">Nothing logged yet. Add the first meal below.</p>
     {:else}
       <ul>
         {#each data.logs as log (log.id)}
-          <li
-            class="border-hairline flex items-center justify-between gap-3 border-b py-2 last:border-0"
-          >
-            <div>
-              <p class="font-medium">
-                <span class="text-ink-muted">[{log.recipeCode ?? 'custom'}]</span>
-                {log.name}
-              </p>
-              <p class="text-ink-muted text-sm">
+          <li class="border-hairline flex items-center gap-3 border-b p-4 last:border-0">
+            <div class="min-w-0 flex-1">
+              <p class="truncate font-medium">{log.name}</p>
+              <p class="text-ink-muted tabular mt-0.5 font-mono text-xs">
                 {mealSlotLabels[log.mealSlot]} · {log.kcal} kcal · {log.proteinG} g P
               </p>
             </div>
             <form method="POST" action="?/delete" use:enhance>
               <input type="hidden" name="id" value={log.id} />
               <button
-                class="text-ink-muted hover:text-over rounded-md px-2 py-1 text-sm whitespace-nowrap"
+                class="text-ink-muted hover:text-over flex min-h-11 items-center px-2 text-sm whitespace-nowrap"
               >
                 Remove
               </button>
@@ -116,30 +105,26 @@
 </section>
 
 <!-- ============================= Log a recipe ============================= -->
-<section class="mt-6">
-  <h2 class="text-xl font-bold">Log a recipe</h2>
+<section class="mt-8">
+  <h2 class="eyebrow text-ink-muted">Log a recipe</h2>
   <form
     method="POST"
     action="?/recipe"
     use:enhance
-    class="bg-surface border-hairline mt-3 flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-end"
+    class="card mt-3 flex flex-col gap-3 p-4 sm:flex-row sm:items-end"
   >
     <input type="hidden" name="date" value={data.date} />
-    <label class="flex flex-1 flex-col gap-1 text-sm">
-      Slot
-      <select
-        name="mealSlot"
-        value="lunch"
-        class="border-hairline bg-surface rounded-md border px-3 py-2"
-      >
+    <label class="flex flex-col gap-1.5 sm:w-36">
+      <span class="eyebrow text-ink-muted">Slot</span>
+      <select name="mealSlot" value="lunch" class="field">
         {#each Object.entries(mealSlotLabels) as [value, label] (value)}
           <option {value}>{label}</option>
         {/each}
       </select>
     </label>
-    <label class="flex flex-[2] flex-col gap-1 text-sm">
-      Recipe
-      <select name="recipeId" class="border-hairline bg-surface rounded-md border px-3 py-2">
+    <label class="flex flex-1 flex-col gap-1.5">
+      <span class="eyebrow text-ink-muted">Recipe</span>
+      <select name="recipeId" class="field">
         {#each recipeGroups as group (group.type)}
           {@const recipes = data.recipes.filter((r) => r.mealType === group.type)}
           {#if recipes.length > 0}
@@ -154,9 +139,7 @@
         {/each}
       </select>
     </label>
-    <button class="bg-accent text-on-accent rounded-md px-4 py-2 font-semibold whitespace-nowrap">
-      Log recipe
-    </button>
+    <button class="btn-primary">Log recipe</button>
   </form>
   {#if form?.recipeError}
     <p class="text-over mt-3 text-sm">{form.recipeError}</p>
@@ -164,62 +147,39 @@
 </section>
 
 <!-- ============================= Log custom ============================= -->
-<section class="mt-6 mb-6">
-  <h2 class="text-xl font-bold">Log custom</h2>
-  <form
-    method="POST"
-    action="?/custom"
-    use:enhance
-    class="bg-surface border-hairline mt-3 rounded-lg border p-4"
-  >
-    <input type="hidden" name="date" value={data.date} />
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
-      <label class="flex flex-col gap-1 text-sm sm:w-32">
-        Slot
-        <select
-          name="mealSlot"
-          value="lunch"
-          class="border-hairline bg-surface rounded-md border px-3 py-2"
-        >
-          {#each Object.entries(mealSlotLabels) as [value, label] (value)}
-            <option {value}>{label}</option>
-          {/each}
-        </select>
-      </label>
-      <label class="flex flex-[2] flex-col gap-1 text-sm">
-        Name
-        <input
-          name="name"
-          required
-          class="border-hairline bg-surface rounded-md border px-3 py-2"
-        />
-      </label>
-      <label class="flex flex-col gap-1 text-sm sm:w-28">
-        Kcal
-        <input
-          name="kcal"
-          type="number"
-          min="0"
-          required
-          class="border-hairline bg-surface rounded-md border px-3 py-2"
-        />
-      </label>
-      <label class="flex flex-col gap-1 text-sm sm:w-28">
-        Protein (g)
-        <input
-          name="proteinG"
-          type="number"
-          min="0"
-          required
-          class="border-hairline bg-surface rounded-md border px-3 py-2"
-        />
-      </label>
-      <button class="bg-accent text-on-accent rounded-md px-4 py-2 font-semibold whitespace-nowrap">
-        Log custom
-      </button>
-    </div>
-    {#if form?.error}
-      <p class="text-over mt-3 text-sm">{form.error}</p>
-    {/if}
-  </form>
+<section class="mt-8">
+  <details class="card p-4">
+    <summary class="eyebrow text-ink-muted flex min-h-11 cursor-pointer items-center">
+      Log something custom
+    </summary>
+    <form method="POST" action="?/custom" use:enhance class="mt-3">
+      <input type="hidden" name="date" value={data.date} />
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-[8rem_1fr_6rem_6rem_auto] sm:items-end">
+        <label class="flex flex-col gap-1.5">
+          <span class="eyebrow text-ink-muted">Slot</span>
+          <select name="mealSlot" value="lunch" class="field">
+            {#each Object.entries(mealSlotLabels) as [value, label] (value)}
+              <option {value}>{label}</option>
+            {/each}
+          </select>
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="eyebrow text-ink-muted">Name</span>
+          <input name="name" required class="field" />
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="eyebrow text-ink-muted">Kcal</span>
+          <input name="kcal" type="number" min="0" required class="field" />
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="eyebrow text-ink-muted">Protein g</span>
+          <input name="proteinG" type="number" min="0" required class="field" />
+        </label>
+        <button class="btn-primary col-span-2 sm:col-span-1">Log custom</button>
+      </div>
+      {#if form?.error}
+        <p class="text-over mt-3 text-sm">{form.error}</p>
+      {/if}
+    </form>
+  </details>
 </section>

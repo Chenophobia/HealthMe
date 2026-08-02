@@ -37,6 +37,22 @@ npm run lint         # prettier --check + eslint (what CI runs)
 npm run check        # svelte-check (typechecking)
 ```
 
+## Home-screen icons
+
+The app is installable: `static/manifest.webmanifest` plus the PNGs beside
+it. iOS ignores the manifest's icons when you Add to Home Screen and looks
+only for `apple-touch-icon.png`, so that file is the one that actually
+matters on an iPhone — an SVG favicon alone leaves the tile blank.
+
+The PNGs are generated and committed, not built:
+
+```bash
+npm run icons        # redraw static/*.png from scripts/generate-icons.ts
+```
+
+`src/lib/pwa-assets.test.ts` fails if an advertised icon is missing, is the
+wrong size, or stops being linked from `app.html`.
+
 ## Environment variables
 
 Set these in a `.env` file (copy `.env.example` to start):
