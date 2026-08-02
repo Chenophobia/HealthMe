@@ -1,0 +1,10 @@
+# Generated or historical artifacts — not style-checked.
+node_modules/
+build/
+.svelte-kit/
+data/
+drizzle/
+package-lock.json
+.superpowers/
+docs/superpowers/
+docs/fat-loss-program.md

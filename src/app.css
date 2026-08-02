@@ -1,0 +1,45 @@
+@import 'tailwindcss';
+
+/* Exclude docs/ (design specs, plans, the source program) from Tailwind's
+   content scan — they contain example class strings unused by components. */
+@source not '../docs';
+
+/*
+ * Design tokens. Each is a real value in @theme (the light default) and is
+ * re-pointed under prefers-color-scheme: dark — utilities like `bg-paper`
+ * never need a `dark:` prefix because the underlying variable changes.
+ * Palette: cool "paper" neutrals with a single green accent (health/go),
+ * plus a warning tone for over-target macro bars.
+ */
+@theme {
+  --color-paper: #f6f7f8;
+  --color-surface: #ffffff;
+  --color-ink: #1b1d21;
+  --color-ink-muted: #61666e;
+  --color-hairline: #e1e4e9;
+  --color-accent: #276847;
+  --color-over: #8b2b23;
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper: #14171c;
+    --color-surface: #1b1f26;
+    --color-ink: #e7e9ec;
+    --color-ink-muted: #9aa1ac;
+    --color-hairline: #2b3038;
+    --color-accent: #59c08c;
+    --color-over: #de857c;
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+}
