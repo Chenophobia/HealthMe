@@ -1,6 +1,8 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
+  import { goto } from '$app/navigation';
   import { KCAL_TARGET, PROTEIN_TARGET_G, PROTEIN_AIM_G } from '$lib/targets';
+  import { weekdayOf } from '$lib/dates';
   import type { PageData, ActionData } from './$types';
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -21,16 +23,48 @@
 
   const kcalOver = $derived(data.totals.kcal > KCAL_TARGET);
   const proteinUnder = $derived(data.totals.proteinG < PROTEIN_TARGET_G);
+  const isToday = $derived(data.date === data.today);
 </script>
 
 <svelte:head><title>Meals — health-me</title></svelte:head>
 
 <h1 class="text-2xl font-bold">Meals</h1>
-<p class="text-ink-muted mt-1 text-sm">{data.date}</p>
+<p class="text-ink-muted mt-1 text-sm">{data.date} · {weekdayOf(data.date)}</p>
+
+<!-- ============================= Date bar ============================= -->
+<div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+  <a
+    href="?date={data.prevDate}"
+    aria-label="Previous day"
+    class="border-hairline bg-surface text-ink-muted hover:text-ink rounded-md border px-3 py-2"
+  >
+    ←
+  </a>
+  <input
+    type="date"
+    value={data.date}
+    aria-label="Go to date"
+    onchange={(e) => {
+      const v = e.currentTarget.value;
+      if (v) goto(`?date=${v}`);
+    }}
+    class="border-hairline bg-surface rounded-md border px-3 py-2"
+  />
+  <a
+    href="?date={data.nextDate}"
+    aria-label="Next day"
+    class="border-hairline bg-surface text-ink-muted hover:text-ink rounded-md border px-3 py-2"
+  >
+    →
+  </a>
+  {#if !isToday}
+    <a href="/meals" class="text-accent font-medium whitespace-nowrap">Back to today</a>
+  {/if}
+</div>
 
 <!-- ============================= Totals ============================= -->
 <div class="bg-surface border-hairline mt-4 rounded-lg border p-4">
-  <h2 class="font-semibold">Today's totals</h2>
+  <h2 class="font-semibold">{isToday ? "Today's totals" : `Totals · ${data.date}`}</h2>
   <p class="mt-2 text-sm">
     <span class={kcalOver ? 'text-over font-medium' : 'font-medium'}
       >{data.totals.kcal} / {KCAL_TARGET} kcal</span
@@ -45,10 +79,12 @@
 
 <!-- ============================= Today's log ============================= -->
 <section class="mt-6">
-  <h2 class="text-xl font-bold">Today's log</h2>
+  <h2 class="text-xl font-bold">{isToday ? "Today's log" : `Log · ${data.date}`}</h2>
   <div class="bg-surface border-hairline mt-3 rounded-lg border p-4">
     {#if data.logs.length === 0}
-      <p class="text-ink-muted text-sm">Nothing logged yet today.</p>
+      <p class="text-ink-muted text-sm">
+        Nothing logged {isToday ? 'yet today' : `on ${data.date}`}.
+      </p>
     {:else}
       <ul>
         {#each data.logs as log (log.id)}
@@ -88,6 +124,7 @@
     use:enhance
     class="bg-surface border-hairline mt-3 flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-end"
   >
+    <input type="hidden" name="date" value={data.date} />
     <label class="flex flex-1 flex-col gap-1 text-sm">
       Slot
       <select
@@ -132,6 +169,7 @@
     use:enhance
     class="bg-surface border-hairline mt-3 rounded-lg border p-4"
   >
+    <input type="hidden" name="date" value={data.date} />
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
       <label class="flex flex-col gap-1 text-sm sm:w-32">
         Slot

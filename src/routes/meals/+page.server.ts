@@ -11,13 +11,18 @@ import {
   dayTotals,
   deleteMealLog
 } from '$lib/server/meals';
-import { todayLocal } from '$lib/dates';
+import { todayLocal, isValidDate, shiftDate } from '$lib/dates';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
-  const date = todayLocal();
+export const load: PageServerLoad = async ({ locals, url }) => {
+  const today = todayLocal();
+  const picked = url.searchParams.get('date') ?? '';
+  const date = isValidDate(picked) ? picked : today;
   return {
     date,
+    today,
+    prevDate: shiftDate(date, -1),
+    nextDate: shiftDate(date, 1),
     recipes: db.select().from(recipes).orderBy(asc(recipes.displayOrder)).all(),
     logs: mealsForDate(db, locals.user!.id, date),
     totals: dayTotals(db, locals.user!.id, date)
@@ -30,11 +35,18 @@ function slotOf(form: FormData): MealSlot {
   return slot as MealSlot;
 }
 
+/** The date the page was viewing when submitted — carried in a hidden field. */
+function dateOf(form: FormData): string {
+  const date = String(form.get('date') ?? '');
+  if (!isValidDate(date)) throw new Error('bad date');
+  return date;
+}
+
 export const actions: Actions = {
   recipe: async ({ request, locals }) => {
     const form = await request.formData();
     try {
-      logRecipeMeal(db, locals.user!.id, todayLocal(), slotOf(form), Number(form.get('recipeId')));
+      logRecipeMeal(db, locals.user!.id, dateOf(form), slotOf(form), Number(form.get('recipeId')));
     } catch {
       return fail(400, { error: 'Could not log that recipe.' });
     }
@@ -51,7 +63,7 @@ export const actions: Actions = {
       logCustomMeal(
         db,
         locals.user!.id,
-        todayLocal(),
+        dateOf(form),
         slotOf(form),
         String(form.get('name') ?? ''),
         Number(kcalRaw),

@@ -71,6 +71,17 @@
 
   <form method="POST" action="?/weighin" use:enhance class="mt-3 flex flex-wrap items-end gap-3">
     <label class="flex flex-col gap-1 text-sm">
+      Date
+      <input
+        name="date"
+        type="date"
+        value={data.date}
+        max={data.date}
+        required
+        class="border-hairline bg-surface rounded-md border px-3 py-2"
+      />
+    </label>
+    <label class="flex flex-col gap-1 text-sm">
       Weight (kg)
       <input
         name="weightKg"
@@ -98,7 +109,7 @@
   {#if form?.error}
     <p class="text-over mt-3 text-sm">{form.error}</p>
   {/if}
-  <p class="text-ink-muted mt-2 text-xs">Re-submitting today replaces today's entry.</p>
+  <p class="text-ink-muted mt-2 text-xs">Re-submitting a day replaces that day's entry.</p>
 </div>
 
 <!-- ============================= Consistency ============================= -->

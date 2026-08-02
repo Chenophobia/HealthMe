@@ -18,3 +18,16 @@ export function scheduledSessionFor(date: string): SessionType | null {
   const dow = new Date(`${date}T12:00:00`).getDay();
   return dow === 1 ? 'push' : dow === 3 ? 'pull' : dow === 5 ? 'legs' : null;
 }
+
+/** Strict YYYY-MM-DD: right shape AND a real calendar date (2026-02-30 fails). */
+export function isValidDate(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+
+/** `date` shifted by `days` calendar days (UTC arithmetic on the date-only value). */
+export function shiftDate(date: string, days: number): string {
+  const t = new Date(`${date}T00:00:00Z`).getTime() + days * 24 * 60 * 60 * 1000;
+  return new Date(t).toISOString().slice(0, 10);
+}
