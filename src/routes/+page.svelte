@@ -25,7 +25,7 @@
     class="border-hairline bg-surface mt-4 flex items-center justify-between gap-3 rounded-lg border p-4 text-sm"
   >
     <span
-      ><span class="font-medium">{SESSION_LABELS[data.scheduled]} day</span> — log your session</span
+      ><span class="font-medium">{SESSION_LABELS[data.scheduled]} day</span> — see today's exercises</span
     >
     <span class="text-accent font-medium whitespace-nowrap">Go →</span>
   </a>
@@ -116,7 +116,7 @@
 <div class="bg-surface border-hairline mt-4 rounded-lg border p-4">
   <h2 class="font-semibold">Consistency</h2>
   <p class="mt-2 text-sm">
-    {data.streak}-day logging streak · {data.week.done}/{data.week.target} sessions this week
+    {data.streak}-day logging streak
   </p>
 </div>
 

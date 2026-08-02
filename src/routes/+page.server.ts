@@ -2,7 +2,7 @@ import { fail } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { dayTotals } from '$lib/server/meals';
 import { addBodyMetric, listMetrics } from '$lib/server/metrics';
-import { mealStreak, sessionsThisWeek } from '$lib/server/streaks';
+import { mealStreak } from '$lib/server/streaks';
 import { todayLocal, isValidDate, scheduledSessionFor } from '$lib/dates';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -14,7 +14,6 @@ export const load: PageServerLoad = async ({ locals }) => {
     scheduled: scheduledSessionFor(date),
     totals: dayTotals(db, locals.user!.id, date),
     streak: mealStreak(db, locals.user!.id, date),
-    week: sessionsThisWeek(db, locals.user!.id, date),
     latest: metrics.at(-1) ?? null,
     recent: metrics.slice(-30)
   };

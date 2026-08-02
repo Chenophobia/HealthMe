@@ -1,4 +1,4 @@
-import { sqliteTable, integer, text, real, index, unique } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, integer, text, real, index } from 'drizzle-orm/sqlite-core';
 
 // ---- Reference data (seeded from docs/fat-loss-program.md, not user-edited) ----
 
@@ -81,36 +81,4 @@ export const mealLogs = sqliteTable(
     loggedAt: text('logged_at').notNull()
   },
   (t) => [index('meal_logs_user_date_idx').on(t.userId, t.date)]
-);
-
-export const workoutSessions = sqliteTable(
-  'workout_sessions',
-  {
-    id: integer('id').primaryKey({ autoIncrement: true }),
-    userId: integer('user_id')
-      .notNull()
-      .references(() => users.id),
-    date: text('date').notNull(),
-    sessionType: text('session_type').notNull(), // 'push' | 'pull' | 'legs'
-    createdAt: text('created_at').notNull()
-  },
-  (t) => [unique('workout_sessions_user_date_type').on(t.userId, t.date, t.sessionType)]
-);
-
-export const workoutSets = sqliteTable(
-  'workout_sets',
-  {
-    id: integer('id').primaryKey({ autoIncrement: true }),
-    sessionId: integer('session_id')
-      .notNull()
-      .references(() => workoutSessions.id),
-    exerciseId: integer('exercise_id')
-      .notNull()
-      .references(() => exercises.id),
-    setNumber: integer('set_number').notNull(), // 1-based within (session, exercise)
-    weightKg: real('weight_kg').notNull(),
-    reps: integer('reps').notNull(),
-    createdAt: text('created_at').notNull()
-  },
-  (t) => [index('workout_sets_session_idx').on(t.sessionId, t.exerciseId)]
 );

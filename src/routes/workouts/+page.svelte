@@ -1,21 +1,14 @@
 <script lang="ts">
-  import { enhance } from '$app/forms';
   import { weekdayOf } from '$lib/dates';
-  import type { PageData, ActionData } from './$types';
+  import type { PageData } from './$types';
 
-  let { data, form }: { data: PageData; form: ActionData } = $props();
+  let { data }: { data: PageData } = $props();
 
   const SESSION_TYPES = ['push', 'pull', 'legs'] as const;
   const SESSION_LABELS: Record<string, string> = { push: 'Push', pull: 'Pull', legs: 'Legs' };
 
   function repsLabel(sets: number, repsMin: number, repsMax: number) {
     return repsMin === repsMax ? `${sets} × ${repsMin}` : `${sets} × ${repsMin}–${repsMax}`;
-  }
-
-  function lastLine(last: NonNullable<PageData['exercises'][number]['last']>, repsMax: number) {
-    const parts = last.sets.map((s) => `${s.weightKg} kg × ${s.reps}`).join(', ');
-    const addWeight = last.sets.length > 0 && last.sets.every((s) => s.reps >= repsMax);
-    return `Last time (${last.date}): ${parts}${addWeight ? ' — add weight!' : ''}`;
   }
 </script>
 
@@ -47,10 +40,6 @@
   {/each}
 </nav>
 
-{#if form?.error}
-  <p class="text-over mt-4 text-sm">{form.error}</p>
-{/if}
-
 <!-- ============================= Exercises ============================= -->
 <section class="mt-6 flex flex-col gap-4">
   {#each data.exercises as exercise (exercise.id)}
@@ -64,63 +53,6 @@
       {#if exercise.dumbbellSwap}
         <p class="text-ink-muted text-sm">DB: {exercise.dumbbellSwap}</p>
       {/if}
-      {#if exercise.last}
-        <p class="text-ink-muted mt-2 text-sm">{lastLine(exercise.last, exercise.repsMax)}</p>
-      {/if}
-
-      {#if exercise.todaySets.length > 0}
-        <ul class="mt-3 flex flex-wrap gap-2">
-          {#each exercise.todaySets as set (set.id)}
-            <li
-              class="border-hairline bg-paper flex items-center gap-1.5 rounded-full border py-1 pr-1.5 pl-3 text-sm"
-            >
-              {set.weightKg} kg × {set.reps}
-              <form method="POST" action="?/deleteset" use:enhance>
-                <input type="hidden" name="id" value={set.id} />
-                <button
-                  type="submit"
-                  aria-label="Delete set"
-                  class="text-ink-muted hover:text-over rounded-full px-1.5 leading-none"
-                >
-                  &times;
-                </button>
-              </form>
-            </li>
-          {/each}
-        </ul>
-      {/if}
-
-      <form method="POST" action="?/logset" use:enhance class="mt-3 flex flex-wrap items-end gap-2">
-        <input type="hidden" name="exerciseId" value={exercise.id} />
-        <input type="hidden" name="sessionType" value={data.sessionType} />
-        <label class="flex flex-col gap-1 text-sm">
-          Weight (kg)
-          <input
-            name="weightKg"
-            type="number"
-            step="0.5"
-            min="0"
-            required
-            class="border-hairline bg-surface w-24 rounded-md border px-3 py-2"
-          />
-        </label>
-        <label class="flex flex-col gap-1 text-sm">
-          Reps
-          <input
-            name="reps"
-            type="number"
-            step="1"
-            min="1"
-            required
-            class="border-hairline bg-surface w-20 rounded-md border px-3 py-2"
-          />
-        </label>
-        <button
-          class="bg-accent text-on-accent rounded-md px-4 py-2 font-semibold whitespace-nowrap"
-        >
-          Log set
-        </button>
-      </form>
     </div>
   {/each}
 </section>

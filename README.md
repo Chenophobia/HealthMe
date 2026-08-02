@@ -3,8 +3,8 @@
 ## What this is
 
 A personal, single-user health tracker for a fat-loss program — logging
-meals, weigh-ins, and workouts against a plan, with a dashboard summarizing
-progress over time. The program itself (targets, recipes, training split)
+meals and weigh-ins against a plan, looking up the day's workout, with a
+dashboard summarizing progress over time. The program itself (targets, recipes, training split)
 lives at [`docs/fat-loss-program.md`](docs/fat-loss-program.md); the app is
 just the day-to-day logging and progress tool built around it.
 
@@ -41,10 +41,10 @@ npm run check        # svelte-check (typechecking)
 
 Set these in a `.env` file (copy `.env.example` to start):
 
-| Variable   | Purpose                                                                                                            |
-| ---------- | ------------------------------------------------------------------------------------------------------------------ |
-| `DATA_DIR` | Directory holding `app.db`. In Docker this is `/app/data`, bind-mounted from `./data` on the host.                 |
-| `TZ`       | Timezone used to determine "today" when logging meals/weigh-ins/workouts. Without it the container's clock is UTC. |
+| Variable   | Purpose                                                                                                   |
+| ---------- | --------------------------------------------------------------------------------------------------------- |
+| `DATA_DIR` | Directory holding `app.db`. In Docker this is `/app/data`, bind-mounted from `./data` on the host.        |
+| `TZ`       | Timezone used to determine "today" when logging meals/weigh-ins. Without it the container's clock is UTC. |
 
 ## Docker
 
@@ -98,7 +98,7 @@ docker compose start
 ```
 
 Rebuilding recipes/exercises reference data (destructive to nothing user-logged,
-but refuses if any meal/workout log already references the old rows):
+but refuses if any meal log already references the old rows):
 
 ```bash
 docker compose stop

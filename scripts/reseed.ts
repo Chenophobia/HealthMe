@@ -1,10 +1,10 @@
 /**
  * Destructive reference-data rebuild (recipes + exercises).
  *
- * User data (meal logs, workouts, metrics, accounts) is NOT touched, but
- * meal_logs.recipe_id and workout_sets.exercise_id reference these tables,
- * so reseeding while logs exist would orphan those FKs. In that case this
- * refuses and tells you to null out or migrate references first.
+ * User data (meal logs, metrics, accounts) is NOT touched, but
+ * meal_logs.recipe_id references these tables, so reseeding while logs
+ * exist would orphan those FKs. In that case this refuses and tells you
+ * to null out or migrate references first.
  *
  * Usage:
  *   docker compose stop
@@ -14,7 +14,7 @@
 import { sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { db } from '../src/lib/server/db';
-import { recipes, exercises, mealLogs, workoutSets } from '../src/lib/server/db/schema';
+import { recipes, exercises, mealLogs } from '../src/lib/server/db/schema';
 import { seedIfEmpty } from '../src/lib/server/seed/run';
 
 function count(table: SQLiteTable): number {
@@ -26,10 +26,10 @@ function count(table: SQLiteTable): number {
 }
 
 function main() {
-  const referencingLogs = count(mealLogs) + count(workoutSets);
+  const referencingLogs = count(mealLogs);
   if (referencingLogs > 0) {
     console.error(
-      `Refusing to reseed: ${referencingLogs} logged rows reference recipes/exercises.\n` +
+      `Refusing to reseed: ${referencingLogs} logged rows reference recipes.\n` +
         'Reseeding would orphan their foreign keys. Migrate or clear logs first.'
     );
     process.exit(1);

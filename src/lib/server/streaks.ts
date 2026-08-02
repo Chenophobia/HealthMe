@@ -1,13 +1,7 @@
-import { and, eq, gte, lte, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { Db } from './db/connect';
-import { mealLogs, workoutSessions, workoutSets } from './db/schema';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-function shiftDate(date: string, days: number): string {
-  const t = new Date(`${date}T00:00:00Z`).getTime() + days * DAY_MS;
-  return new Date(t).toISOString().slice(0, 10);
-}
+import { mealLogs } from './db/schema';
+import { shiftDate } from '../dates';
 
 /**
  * Consecutive days with >= 1 meal log, ending at `today` — or at yesterday,
@@ -30,34 +24,4 @@ export function mealStreak(db: Db, userId: number, today: string): number {
     anchor = shiftDate(anchor, -1);
   }
   return streak;
-}
-
-/** Monday-anchored week containing `today`. */
-export function weekBounds(today: string): { monday: string; sunday: string } {
-  const d = new Date(`${today}T00:00:00Z`);
-  const dow = d.getUTCDay(); // 0 = Sunday
-  const back = dow === 0 ? 6 : dow - 1;
-  const monday = shiftDate(today, -back);
-  return { monday, sunday: shiftDate(monday, 6) };
-}
-
-export function sessionsThisWeek(
-  db: Db,
-  userId: number,
-  today: string
-): { done: number; target: 3 } {
-  const { monday, sunday } = weekBounds(today);
-  const [row] = db
-    .select({ n: sql<number>`count(distinct ${workoutSessions.id})` })
-    .from(workoutSessions)
-    .innerJoin(workoutSets, eq(workoutSets.sessionId, workoutSessions.id))
-    .where(
-      and(
-        eq(workoutSessions.userId, userId),
-        gte(workoutSessions.date, monday),
-        lte(workoutSessions.date, sunday)
-      )
-    )
-    .all();
-  return { done: row?.n ?? 0, target: 3 };
 }

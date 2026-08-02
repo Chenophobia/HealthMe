@@ -51,7 +51,7 @@
 <div class="bg-surface border-hairline mt-4 rounded-lg border p-4">
   <h2 class="font-semibold">Consistency</h2>
   <p class="mt-2 text-sm">
-    {data.streak}-day logging streak · {data.week.done}/{data.week.target} sessions this week
+    {data.streak}-day logging streak
   </p>
 </div>
 

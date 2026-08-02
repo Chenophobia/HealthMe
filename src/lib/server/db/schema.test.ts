@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createTestDb } from './test-db';
-import { users, bodyMetrics, mealLogs, workoutSessions, workoutSets, exercises } from './schema';
+import { users, bodyMetrics, mealLogs } from './schema';
 
 describe('schema', () => {
   it('round-trips a body metric', () => {
@@ -25,18 +25,6 @@ describe('schema', () => {
     expect(rows[0].bodyFatPct).toBeCloseTo(27.5);
   });
 
-  it('rejects two workout sessions of the same type on the same day', () => {
-    const db = createTestDb();
-    const [u] = db
-      .insert(users)
-      .values({ username: 'yao', passwordHash: 'x', createdAt: 'now' })
-      .returning()
-      .all();
-    const row = { userId: u.id, date: '2026-08-03', sessionType: 'push', createdAt: 'now' };
-    db.insert(workoutSessions).values(row).run();
-    expect(() => db.insert(workoutSessions).values(row).run()).toThrow();
-  });
-
   it('allows a meal log with a null recipeId and a customName', () => {
     const db = createTestDb();
     const [u] = db
@@ -56,33 +44,5 @@ describe('schema', () => {
       })
       .run();
     expect(db.select().from(mealLogs).all()[0].recipeId).toBeNull();
-  });
-
-  it('enforces the exercises FK on workout sets', () => {
-    const db = createTestDb();
-    const [u] = db
-      .insert(users)
-      .values({ username: 'yao', passwordHash: 'x', createdAt: 'now' })
-      .returning()
-      .all();
-    const [s] = db
-      .insert(workoutSessions)
-      .values({ userId: u.id, date: '2026-08-03', sessionType: 'push', createdAt: 'now' })
-      .returning()
-      .all();
-    expect(() =>
-      db
-        .insert(workoutSets)
-        .values({
-          sessionId: s.id,
-          exerciseId: 999,
-          setNumber: 1,
-          weightKg: 20,
-          reps: 10,
-          createdAt: 'now'
-        })
-        .run()
-    ).toThrow();
-    void exercises;
   });
 });
