@@ -27,8 +27,9 @@ COPY --from=build /app/drizzle ./drizzle
 COPY --from=build /app/package.json ./package.json
 # Needed at runtime for `npm run create-user` / `set-password` / `reseed`:
 # they run off TypeScript source via tsx (a production dependency), reusing
-# the app's own db/auth modules.
+# the app's own modules under src/lib (server code may import from src/lib
+# itself, e.g. streaks.ts -> dates.ts, so copy the whole lib tree).
 COPY --from=build /app/scripts ./scripts
-COPY --from=build /app/src/lib/server ./src/lib/server
+COPY --from=build /app/src/lib ./src/lib
 EXPOSE 3002
 CMD ["node", "build/index.js"]
