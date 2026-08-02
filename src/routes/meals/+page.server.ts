@@ -42,6 +42,11 @@ export const actions: Actions = {
   },
   custom: async ({ request, locals }) => {
     const form = await request.formData();
+    const kcalRaw = String(form.get('kcal') ?? '').trim();
+    const proteinRaw = String(form.get('proteinG') ?? '').trim();
+    if (!kcalRaw || !proteinRaw) {
+      return fail(400, { error: 'Name, kcal and protein are required (kcal/protein ≥ 0).' });
+    }
     try {
       logCustomMeal(
         db,
@@ -49,8 +54,8 @@ export const actions: Actions = {
         todayLocal(),
         slotOf(form),
         String(form.get('name') ?? ''),
-        Number(form.get('kcal')),
-        Number(form.get('proteinG'))
+        Number(kcalRaw),
+        Number(proteinRaw)
       );
     } catch {
       return fail(400, { error: 'Name, kcal and protein are required (kcal/protein ≥ 0).' });
