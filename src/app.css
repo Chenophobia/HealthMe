@@ -18,6 +18,7 @@
   --color-ink-muted: #61666e;
   --color-hairline: #e1e4e9;
   --color-accent: #276847;
+  --color-on-accent: #ffffff;
   --color-over: #8b2b23;
 
   --font-sans:
@@ -36,6 +37,7 @@
     --color-ink-muted: #9aa1ac;
     --color-hairline: #2b3038;
     --color-accent: #59c08c;
+    --color-on-accent: #0b1f16;
     --color-over: #de857c;
   }
 }

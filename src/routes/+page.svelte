@@ -91,7 +91,7 @@
         class="border-hairline bg-surface w-28 rounded-md border px-3 py-2"
       />
     </label>
-    <button class="bg-accent rounded-md px-4 py-2 font-semibold whitespace-nowrap text-white">
+    <button class="bg-accent text-on-accent rounded-md px-4 py-2 font-semibold whitespace-nowrap">
       Log weigh-in
     </button>
   </form>

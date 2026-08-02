@@ -39,7 +39,7 @@
       href="?session={type}"
       aria-current={isActive ? 'page' : undefined}
       class="rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap {isActive
-        ? 'bg-accent text-white'
+        ? 'bg-accent text-on-accent'
         : 'bg-surface border-hairline text-ink-muted hover:text-ink border'}"
     >
       {SESSION_LABELS[type]}{data.scheduled === type ? ' (today)' : ''}
@@ -115,7 +115,9 @@
             class="border-hairline bg-surface w-20 rounded-md border px-3 py-2"
           />
         </label>
-        <button class="bg-accent rounded-md px-4 py-2 font-semibold whitespace-nowrap text-white">
+        <button
+          class="bg-accent text-on-accent rounded-md px-4 py-2 font-semibold whitespace-nowrap"
+        >
           Log set
         </button>
       </form>

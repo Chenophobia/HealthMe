@@ -34,6 +34,6 @@
     {#if form?.error}
       <p class="text-over text-sm">{form.error}</p>
     {/if}
-    <button class="bg-accent rounded-md px-4 py-2 font-semibold text-white">Log in</button>
+    <button class="bg-accent text-on-accent rounded-md px-4 py-2 font-semibold">Log in</button>
   </form>
 </main>

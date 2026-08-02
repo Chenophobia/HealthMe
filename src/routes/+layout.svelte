@@ -40,6 +40,10 @@
   </header>
 {/if}
 
-<main class="mx-auto w-full max-w-3xl p-4 sm:p-6">
+{#if data.user}
+  <main class="mx-auto w-full max-w-3xl p-4 sm:p-6">
+    {@render children()}
+  </main>
+{:else}
   {@render children()}
-</main>
+{/if}

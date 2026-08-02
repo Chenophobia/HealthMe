@@ -1,6 +1,6 @@
 import { and, eq, gte, lte, sql } from 'drizzle-orm';
 import type { Db } from './db/connect';
-import { mealLogs, workoutSessions } from './db/schema';
+import { mealLogs, workoutSessions, workoutSets } from './db/schema';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -48,8 +48,9 @@ export function sessionsThisWeek(
 ): { done: number; target: 3 } {
   const { monday, sunday } = weekBounds(today);
   const [row] = db
-    .select({ n: sql<number>`count(*)` })
+    .select({ n: sql<number>`count(distinct ${workoutSessions.id})` })
     .from(workoutSessions)
+    .innerJoin(workoutSets, eq(workoutSets.sessionId, workoutSessions.id))
     .where(
       and(
         eq(workoutSessions.userId, userId),
