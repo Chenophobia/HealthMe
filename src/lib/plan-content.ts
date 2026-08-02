@@ -7,7 +7,7 @@ export const PLAN_PROSE = {
     { what: 'Water', target: '2.5–3 L', why: 'Controls hunger; reduces face puffiness' }
   ],
   anchors:
-    'Only two numbers really matter: stay near 1,750 kcal and hit 150+ g protein. Never drop below ~1,600 kcal.',
+    'Only two numbers really matter: stay near 1,750 kcal and hit 150+ g protein. Never drop below ~1,600 kcal (near baseline burn).',
   dayFormula:
     'Breakfast + Lunch + Dinner + 1–2 snacks ≈ 1,750 kcal / ~160 g protein. Pick one option per section, mix and match freely.',
   goldenRules: [
@@ -38,11 +38,23 @@ export const PLAN_PROSE = {
   ],
   sessionFlow: [
     { stage: '1 · Warm-up', what: 'Treadmill: incline 10, speed 5.0, 10 min' },
-    { stage: '2 · Weights', what: 'The 5 exercises for the day. Straight sets.' },
+    { stage: '2 · Weights', what: 'The 5 exercises for the day (below). Straight sets.' },
     { stage: '3 · Finish', what: '10–15 min steady spin bike or rower' }
   ],
   straightSets:
-    'Do all sets of one exercise, resting ~60–75 seconds between them, then move to the next exercise. Push each set until it feels hard — stop about 2 reps before failure.',
+    'Do all sets of one exercise, resting ~60–75 seconds between them, then move to next exercise. Push each set until it feels hard — stop about 2 reps before failure.',
+  cardio: [
+    {
+      when: 'Open',
+      what: 'Incline 10, speed 5.0 — 10 min',
+      purpose: 'Warm-up + high-intensity fat burn'
+    },
+    {
+      when: 'Close',
+      what: 'Spin or row, steady — 10–15 min',
+      purpose: 'Extra calorie burn, easy on joints'
+    }
+  ],
   homeCore: [
     { exercise: 'Plank', sets: '3 × 30–45 s' },
     { exercise: 'Reverse lunges', sets: '3 × 10 / leg' },
@@ -50,9 +62,9 @@ export const PLAN_PROSE = {
     { exercise: 'Dead bug / bird-dog', sets: '3 × 10' }
   ],
   progression:
-    'When you can hit the top of the rep range on all sets with clean form, add a little weight next time (~2.5 kg on machines/bars, 1–2 kg on dumbbells) and drop back to the bottom of the range. Write down weight × reps every session. Take a deload occasionally (same weights, drop the last exercise, ease off cardio) whenever you feel run down.',
+    "When you can hit the top of the rep range on all sets with clean form, add a little weight next time (~2.5 kg on machines/bars, 1–2 kg on dumbbells) and drop back to the bottom of the range. Write down weight × reps every session — numbers going up means it's working, even on days the scale won't move. Take a deload occasionally (same weights, drop the last exercise, ease off cardio) whenever you feel run down, then go back to pushing harder.",
   safety:
-    'Form before weight — watch one short technique video per lift before your first try. Machines are safe to push to your limit alone. Sharp or joint pain = stop and swap the exercise; muscle burn is normal. Take rest days — muscle grows during recovery. If you ever feel chest pain or dizziness during hard cardio, stop and get checked.',
+    'Form before weight — watch one short technique video per lift before your first try. Machines are safe to push to your limit alone. Sharp or joint pain = stop and swap the exercise; muscle burn is normal. Take rest days — muscle grows during recovery, not in the gym. If you ever feel chest pain or dizziness during hard cardio, stop and get checked.',
   disclaimer:
-    'Educational plan built from RENPHO body-composition data and peer-reviewed research. Not medical or dietary advice.'
+    'Educational plan built from RENPHO body-composition data and peer-reviewed research. Not medical or dietary advice. Check with a doctor before starting a new exercise/nutrition program, especially with existing health conditions.'
 } as const;
