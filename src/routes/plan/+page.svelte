@@ -166,6 +166,30 @@
     <p class="text-ink-muted mt-3 text-sm">{PLAN_PROSE.straightSets}</p>
   </div>
 
+  <div class="bg-surface border-hairline mt-6 rounded-lg border p-4">
+    <h3 class="font-semibold">Cardio</h3>
+    <div class="mt-3 overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="text-ink-muted border-hairline border-b">
+            <th class="py-1.5 pr-3 font-medium">When</th>
+            <th class="py-1.5 pr-3 font-medium">Do</th>
+            <th class="py-1.5 font-medium">Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each PLAN_PROSE.cardio as row (row.when)}
+            <tr class="border-hairline border-b last:border-0">
+              <td class="py-1.5 pr-3 font-medium">{row.when}</td>
+              <td class="py-1.5 pr-3">{row.what}</td>
+              <td class="text-ink-muted py-1.5">{row.purpose}</td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   {#each sessionSections as section (section.type)}
     {@const exercises = bySession(section.type)}
     {#if exercises.length > 0}
