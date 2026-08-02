@@ -158,6 +158,9 @@
       Log recipe
     </button>
   </form>
+  {#if form?.recipeError}
+    <p class="text-over mt-3 text-sm">{form.recipeError}</p>
+  {/if}
 </section>
 
 <!-- ============================= Log custom ============================= -->

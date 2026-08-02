@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { asc } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { recipes } from '$lib/server/db/schema';
@@ -16,8 +16,11 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
   const today = todayLocal();
-  const picked = url.searchParams.get('date') ?? '';
-  const date = isValidDate(picked) ? picked : today;
+  const picked = url.searchParams.get('date');
+  // A malformed ?date= would silently show today under a lying URL — send
+  // the browser to the canonical today-URL instead.
+  if (picked !== null && !isValidDate(picked)) throw redirect(303, '/meals');
+  const date = picked ?? today;
   return {
     date,
     today,
@@ -48,7 +51,7 @@ export const actions: Actions = {
     try {
       logRecipeMeal(db, locals.user!.id, dateOf(form), slotOf(form), Number(form.get('recipeId')));
     } catch {
-      return fail(400, { error: 'Could not log that recipe.' });
+      return fail(400, { recipeError: 'Could not log that recipe.' });
     }
     return { ok: true };
   },

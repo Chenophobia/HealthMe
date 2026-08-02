@@ -108,6 +108,8 @@
   </form>
   {#if form?.error}
     <p class="text-over mt-3 text-sm">{form.error}</p>
+  {:else if form?.ok}
+    <p class="text-accent mt-3 text-sm">Weigh-in saved for {form.date}.</p>
   {/if}
   <p class="text-ink-muted mt-2 text-xs">Re-submitting a day replaces that day's entry.</p>
 </div>

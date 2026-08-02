@@ -39,6 +39,6 @@ export const actions: Actions = {
     } catch {
       return fail(400, { error: 'Weight must be a positive number; body fat 0–100 or blank.' });
     }
-    return { ok: true };
+    return { ok: true, date };
   }
 };
