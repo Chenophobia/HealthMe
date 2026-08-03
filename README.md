@@ -73,10 +73,17 @@ Then build the Shortcut on the phone (exact action names drift between iOS
 versions — this is the shape, not a transcript):
 
 1. **Find All Health Samples** — type Active Energy, filtered to today.
-2. **Calculate Statistics** — Sum, over the samples' values.
+2. **Calculate Statistics** — Sum, over the **Health Samples variable itself**.
 3. **Get Contents of URL** — `https://<host>/api/activity`, method POST,
    headers `Authorization: Bearer <token>` and `Content-Type: application/json`,
    request body JSON with `activeKcal` set to the sum from step 2.
+
+Step 2 is easy to get subtly wrong. Do **not** drill into the samples' `Value`
+property — it appears to round each sample individually, and Active Energy is
+a long tail of small fractional samples, so the loss compounds. Measured on a
+real day: summing `Value` gave 163 kcal where summing the samples gave 214 and
+the Health app showed 213. It fails as a consistent ~24% undercount, not as an
+error, so the only way to catch it is to compare against the Health app.
 
 Then Automation → Personal Automation → Time of Day to run it. Late evening
 captures a complete day; hourly keeps Today live at the cost of more runs.
