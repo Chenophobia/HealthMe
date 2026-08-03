@@ -103,7 +103,8 @@
       </p>
     {:else}
       <p class="text-ink-muted mt-3 text-sm">
-        Needs 14 days with both a BMR and food logged before it's worth checking against the scale.
+        {data.deficit.days} of 14 days logged. Below that, the scale's water swings are bigger than the
+        loss being predicted, so comparing them says nothing.
       </p>
     {/if}
   </section>

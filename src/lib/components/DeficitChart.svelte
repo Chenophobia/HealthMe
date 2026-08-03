@@ -1,57 +1,69 @@
 <script lang="ts">
+  import { rollingAverage } from '$lib/rolling';
   import { formatNumber } from '$lib/readout';
 
   type Day = { date: string; deficitKcal: number | null };
   let { days }: { days: Day[] } = $props();
 
-  /* Days without both a BMR and food logged are dropped rather than drawn as
-     zero — a gap in the record isn't a day that balanced. */
+  /* Days without both a resting figure and food logged are dropped rather than
+     drawn as zero — a gap in the record isn't a day that balanced. */
   const shown = $derived(
     days
       .filter((d): d is { date: string; deficitKcal: number } => d.deficitKcal !== null)
       .slice(-30)
   );
 
+  /* Same grammar as the weight chart: quiet dots for the daily figure, one
+     line for the average, because a single day's balance is as noisy as a
+     single day's weight and neither is worth reading on its own. */
+  const series = $derived(shown.map((d) => ({ date: d.date, value: d.deficitKcal })));
+  const average = $derived(rollingAverage(series, 7));
+
   const W = 520;
-  const H = 150;
-  const PAD = { top: 12, right: 4, bottom: 12, left: 4 };
-  const PLOT_H = H - PAD.top - PAD.bottom;
+  const H = 160;
+  const PAD = { top: 12, right: 8, bottom: 12, left: 8 };
 
-  /* The zero line sits wherever the data puts it, so a run of pure deficit
-     doesn't waste half the box on a surplus that never happened. */
-  const posMax = $derived(Math.max(0, ...shown.map((d) => d.deficitKcal)));
-  const negMax = $derived(Math.max(0, ...shown.map((d) => -d.deficitKcal)));
-  const span = $derived(posMax + negMax || 1);
-  const zeroY = $derived(PAD.top + (posMax / span) * PLOT_H);
+  const all = $derived([...series, ...average].map((p) => p.value));
+  // Zero has to be in range or the baseline can't be drawn where it belongs.
+  const vMin = $derived(Math.min(0, ...all));
+  const vMax = $derived(Math.max(0, ...all));
+  const span = $derived(vMax - vMin || 1);
 
-  const slot = $derived((W - PAD.left - PAD.right) / Math.max(1, shown.length));
-  const barW = $derived(Math.max(1, slot - Math.min(3, slot * 0.3)));
+  const t0 = $derived(new Date(`${shown[0]?.date ?? '1970-01-01'}T00:00:00Z`).getTime());
+  const t1 = $derived(new Date(`${shown.at(-1)?.date ?? '1970-01-01'}T00:00:00Z`).getTime());
 
-  const geom = (value: number) => {
-    const h = (Math.abs(value) / span) * PLOT_H;
-    return value >= 0 ? { y: zeroY - h, h } : { y: zeroY, h };
-  };
+  function x(date: string): number {
+    const t = new Date(`${date}T00:00:00Z`).getTime();
+    const f = t1 === t0 ? 0.5 : (t - t0) / (t1 - t0);
+    return PAD.left + f * (W - PAD.left - PAD.right);
+  }
+  function y(value: number): number {
+    const f = (value - vMin) / span;
+    return H - PAD.bottom - f * (H - PAD.top - PAD.bottom);
+  }
+  const path = (pts: { date: string; value: number }[]) =>
+    pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.date)},${y(p.value)}`).join(' ');
+
+  const latestAverage = $derived(average.at(-1)?.value ?? null);
 </script>
 
 {#if shown.length === 0}
   <p class="text-ink-muted py-10 text-center text-sm">
-    Nothing to plot yet — a day needs both a BMR and food logged.
+    Nothing to plot yet — a day needs food logged before it has a balance.
   </p>
 {:else}
   <figure class="flex flex-col gap-2">
     <figcaption class="flex items-baseline justify-between gap-3">
-      <span class="eyebrow text-ink-muted">Best / worst</span>
+      <span class="eyebrow text-ink-muted">7-day average</span>
       <span class="tabular font-mono text-sm">
-        <span class={posMax > 0 ? 'text-good' : 'text-ink-muted'}
-          >{posMax > 0 ? `+${formatNumber(posMax)}` : '0'}</span
-        >
-        <span class="text-ink-muted">/</span>
-        <!-- Guarded: with no surplus day in the window this would otherwise
-             render as "−0". -->
-        <span class={negMax > 0 ? 'text-over' : 'text-ink-muted'}
-          >{negMax > 0 ? `−${formatNumber(negMax)}` : '0'}</span
-        >
-        <span class="text-ink-muted">kcal</span>
+        {#if latestAverage === null}
+          <span class="text-ink-muted">—</span>
+        {:else}
+          <span class={latestAverage >= 0 ? 'text-good' : 'text-over'}>
+            {latestAverage >= 0 ? '+' : '−'}{formatNumber(Math.abs(latestAverage))}
+          </span>
+          <span class="text-ink-muted">kcal/day</span>
+        {/if}
       </span>
     </figcaption>
 
@@ -59,29 +71,40 @@
       viewBox="0 0 {W} {H}"
       class="w-full"
       role="img"
-      aria-label="Daily energy balance for the last {shown.length} logged days"
+      aria-label="Daily energy balance across {shown.length} logged days"
     >
-      {#each shown as day, i (day.date)}
-        {@const g = geom(day.deficitKcal)}
-        <rect
-          x={PAD.left + i * slot + (slot - barW) / 2}
-          y={g.y}
-          width={barW}
-          height={Math.max(1, g.h)}
-          rx={Math.min(2, barW / 2)}
-          class={day.deficitKcal >= 0 ? 'fill-good' : 'fill-over'}
-        />
-      {/each}
-
+      <!-- Break-even. Dots above it are deficit days, below are surplus. -->
       <line
         x1={PAD.left}
-        y1={zeroY}
+        y1={y(0)}
         x2={W - PAD.right}
-        y2={zeroY}
-        class="stroke-ink opacity-35"
+        y2={y(0)}
+        class="stroke-ink opacity-30"
         stroke-width="1"
         vector-effect="non-scaling-stroke"
       />
+
+      {#each shown as day (day.date)}
+        <circle
+          cx={x(day.date)}
+          cy={y(day.deficitKcal)}
+          r="3.5"
+          class={day.deficitKcal >= 0 ? 'fill-good' : 'fill-over'}
+          opacity="0.75"
+        />
+      {/each}
+
+      {#if average.length > 1}
+        <path
+          d={path(average)}
+          fill="none"
+          class="stroke-accent"
+          stroke-width="2.5"
+          stroke-linejoin="round"
+          stroke-dasharray="6 4"
+          vector-effect="non-scaling-stroke"
+        />
+      {/if}
     </svg>
 
     <div class="text-ink-muted flex justify-between gap-3">
