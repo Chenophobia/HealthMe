@@ -6,6 +6,7 @@
   import { KCAL_TARGET, KCAL_FLOOR, PROTEIN_TARGET_G, PROTEIN_AIM_G } from '$lib/targets';
   import { energyBalance } from '$lib/energy';
   import { formatNumber } from '$lib/readout';
+  import DateNav from '$lib/components/DateNav.svelte';
   import Meter from '$lib/components/Meter.svelte';
   import StatRow from '$lib/components/StatRow.svelte';
   import TrendChart from '$lib/components/TrendChart.svelte';
@@ -48,25 +49,34 @@
     data.profile.heightCm !== null && data.profile.birthDate !== null && data.profile.sex !== null
   );
 
-  /* The goal drives the calorie target when there is one; otherwise the
-     program's fixed anchor stands. */
-  const kcalTarget = $derived(data.intake?.intakeKcal ?? KCAL_TARGET);
   const shortfall = $derived(
     data.pace && data.intake ? Math.round(data.pace.perDayKcal - data.intake.deficitAtIntake) : 0
   );
+
+  const isToday = $derived(data.date === data.today);
 </script>
 
 <svelte:head><title>Today — health-me</title></svelte:head>
 
 <header>
   <p class="eyebrow text-ink-muted">{weekdayOf(data.date)} · {data.date}</p>
-  <h1 class="mt-2 text-2xl font-semibold tracking-tight">Today</h1>
+  <h1 class="mt-2 text-2xl font-semibold tracking-tight">
+    {isToday ? 'Today' : weekdayOf(data.date)}
+  </h1>
 </header>
+
+<DateNav
+  date={data.date}
+  prevDate={data.prevDate}
+  nextDate={data.nextDate}
+  today={data.today}
+  basePath="/"
+/>
 
 <!-- ============================= The readout ============================= -->
 <section class="card mt-4 p-4 sm:p-5" aria-label="Today's budget">
   <div class="grid gap-6 sm:grid-cols-2 sm:gap-8">
-    <Meter label="Calories" value={data.totals.kcal} target={kcalTarget} unit="kcal" />
+    <Meter label="Calories" value={data.totals.kcal} target={data.kcalTarget} unit="kcal" />
     <div class="border-hairline border-t pt-6 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-8">
       <Meter
         label="Protein"
@@ -143,37 +153,36 @@
           date.
         </p>
       {:else}
-        <StatRow
-          stats={[
-            { label: 'Target', value: `${data.profile.goalWeightKg} kg` },
-            { label: 'By', value: data.profile.goalDate ?? '—' },
-            { label: 'Days left', value: String(data.pace.days) }
-          ]}
-        />
-        <div class="border-hairline mt-4 border-t pt-4">
-          <StatRow
-            stats={[
-              { label: 'Needs', value: `${formatNumber(data.pace.perDayKcal)}/day` },
-              {
-                label: 'Eat',
-                value: data.intake ? `${formatNumber(data.intake.intakeKcal)} kcal` : '—',
-                muted: !data.intake
-              },
-              {
-                label: 'Gives',
-                value: data.intake ? `${formatNumber(data.intake.deficitAtIntake)}/day` : '—',
-                muted: !data.intake
-              }
-            ]}
-          />
-        </div>
+        <p class="eyebrow text-ink-muted">Deficit needed</p>
+        <p class="mt-2.5 flex items-baseline gap-2">
+          <span
+            class="tabular font-mono text-4xl leading-none font-semibold tracking-tight sm:text-5xl"
+          >
+            {formatNumber(data.pace.perDayKcal)}
+          </span>
+          <span class="text-ink-muted font-mono text-sm">kcal a day</span>
+        </p>
+        <p class="text-ink-muted mt-2.5 text-sm">
+          To reach {data.profile.goalWeightKg} kg by {data.profile.goalDate} — {data.pace.days}
+          {data.pace.days === 1 ? 'day' : 'days'} away.
+        </p>
 
-        {#if data.intake?.floored}
-          <p class="text-warn mt-4 text-sm">
-            Held at the {formatNumber(KCAL_FLOOR)} kcal floor — {formatNumber(shortfall)} kcal/day short
-            of the pace. That gap has to come from activity, or the date has to move.
-          </p>
-        {:else if !data.intake}
+        {#if data.intake}
+          <div class="border-hairline mt-4 border-t pt-4">
+            <p class="text-sm">
+              Eat <span class="font-semibold">{formatNumber(data.intake.intakeKcal)} kcal</span> a
+              day. That gives you about
+              <span class="font-semibold">{formatNumber(data.intake.deficitAtIntake)}</span>.
+            </p>
+            {#if data.intake.floored}
+              <p class="text-warn mt-2 text-sm">
+                {formatNumber(shortfall)} kcal/day short of what the goal needs. Eating less isn't the
+                answer — {formatNumber(KCAL_FLOOR)} is the floor — so the gap has to come from moving
+                more, or from a later date.
+              </p>
+            {/if}
+          </div>
+        {:else}
           <p class="text-ink-muted mt-4 text-sm">
             Needs a weigh-in and body profile before it can set a target.
           </p>
@@ -308,7 +317,7 @@
     >
       <label class="col-span-2 flex flex-col gap-1.5 sm:col-span-1">
         <span class="eyebrow text-ink-muted">Date</span>
-        <input name="date" type="date" value={data.date} max={data.date} required class="field" />
+        <input name="date" type="date" value={data.date} max={data.today} required class="field" />
       </label>
       <label class="flex flex-col gap-1.5">
         <span class="eyebrow text-ink-muted">Weight kg</span>

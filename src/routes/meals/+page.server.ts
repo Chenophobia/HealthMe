@@ -11,6 +11,7 @@ import {
   dayTotals,
   deleteMealLog
 } from '$lib/server/meals';
+import { dailyTarget } from '$lib/server/target';
 import { todayLocal, isValidDate, shiftDate } from '$lib/dates';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -28,7 +29,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
     nextDate: shiftDate(date, 1),
     recipes: db.select().from(recipes).orderBy(asc(recipes.displayOrder)).all(),
     logs: mealsForDate(db, locals.user!.id, date),
-    totals: dayTotals(db, locals.user!.id, date)
+    totals: dayTotals(db, locals.user!.id, date),
+    // Same figure Today fills its gauge against — computed once, in one place.
+    kcalTarget: dailyTarget(db, locals.user!.id, today).kcalTarget
   };
 };
 

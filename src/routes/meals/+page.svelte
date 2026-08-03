@@ -1,8 +1,8 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { goto } from '$app/navigation';
-  import { KCAL_TARGET, PROTEIN_TARGET_G, PROTEIN_AIM_G } from '$lib/targets';
+  import { PROTEIN_TARGET_G, PROTEIN_AIM_G } from '$lib/targets';
   import { weekdayOf } from '$lib/dates';
+  import DateNav from '$lib/components/DateNav.svelte';
   import Gauge from '$lib/components/Gauge.svelte';
   import type { PageData, ActionData } from './$types';
 
@@ -36,30 +36,19 @@
   <h1 class="mt-2 text-2xl font-semibold tracking-tight">Meals</h1>
 </header>
 
-<!-- ============================= Date bar ============================= -->
-<nav class="mt-4 flex items-center gap-2" aria-label="Choose a day">
-  <a href="?date={data.prevDate}" aria-label="Previous day" class="btn-quiet">←</a>
-  <input
-    type="date"
-    value={data.date}
-    aria-label="Go to date"
-    onchange={(e) => {
-      const v = e.currentTarget.value;
-      if (v) goto(`?date=${v}`);
-    }}
-    class="field flex-1"
-  />
-  <a href="?date={data.nextDate}" aria-label="Next day" class="btn-quiet">→</a>
-  {#if !isToday}
-    <a href="/meals" class="btn-quiet text-accent">Today</a>
-  {/if}
-</nav>
+<DateNav
+  date={data.date}
+  prevDate={data.prevDate}
+  nextDate={data.nextDate}
+  today={data.today}
+  basePath="/meals"
+/>
 
 <!-- ============================= Totals ============================= -->
 <section class="card mt-4 p-4 sm:p-5">
   <div class="flex flex-col gap-5 sm:flex-row sm:gap-8">
     <div class="flex-1">
-      <Gauge label="Calories" value={data.totals.kcal} target={KCAL_TARGET} unit="kcal" />
+      <Gauge label="Calories" value={data.totals.kcal} target={data.kcalTarget} unit="kcal" />
     </div>
     <div class="flex-1">
       <Gauge
