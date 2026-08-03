@@ -10,7 +10,18 @@
 /** A ceiling is spent down against; a floor is climbed up to. */
 export type GaugeKind = 'ceiling' | 'floor';
 
-export type GaugeStatus = 'empty' | 'progress' | 'met' | 'over';
+export type GaugeStatus = 'empty' | 'progress' | 'near' | 'met' | 'over';
+
+/** The colour band a status paints in. See the token block in app.css. */
+export type Tone = 'muted' | 'accent' | 'warn' | 'good' | 'over';
+
+export function toneFor(status: GaugeStatus): Tone {
+  if (status === 'empty') return 'muted';
+  if (status === 'over') return 'over';
+  if (status === 'met') return 'good';
+  if (status === 'near') return 'warn';
+  return 'accent';
+}
 
 export type Gauge = {
   logged: number;
@@ -29,6 +40,9 @@ export type Gauge = {
  * ceiling counts as "met" from 95% and only reads "over" past 105%.
  */
 const CEILING_TOLERANCE = 0.05;
+
+/** Where a ceiling starts warning that the room left is running out. */
+const CEILING_NEAR = 0.85;
 
 export function gauge(
   logged: number,
@@ -52,9 +66,12 @@ export function gauge(
 
 function statusFor(logged: number, target: number, kind: GaugeKind): GaugeStatus {
   if (logged <= 0) return 'empty';
+  // A floor has no "nearly" worth warning about — you either cleared it or
+  // you're still climbing.
   if (kind === 'floor') return logged >= target ? 'met' : 'progress';
   if (logged > target * (1 + CEILING_TOLERANCE)) return 'over';
   if (logged >= target * (1 - CEILING_TOLERANCE)) return 'met';
+  if (logged >= target * CEILING_NEAR) return 'near';
   return 'progress';
 }
 
@@ -72,17 +89,20 @@ export function formatSigned(n: number, decimals = 1): string {
 }
 
 /**
- * The caption under a big readout: what the number that's on screen means,
- * in the interface's own voice.
+ * The headline for a gauge: the number that's left to act on, and its unit
+ * phrase. Deliberately terse — this app has one reader, who knows what it does.
  */
-export function gaugeCaption(g: Gauge, unit: string, kind: GaugeKind = 'ceiling'): string {
+export function gaugeHeadline(
+  g: Gauge,
+  unit: string,
+  kind: GaugeKind = 'ceiling'
+): { value: string; suffix: string } {
   if (kind === 'floor') {
     return g.status === 'met'
-      ? `Floor cleared — ${formatNumber(g.logged)} ${unit} logged.`
-      : `${formatNumber(Math.max(0, g.remaining))} ${unit} to go.`;
+      ? { value: formatNumber(g.logged), suffix: `${unit} logged` }
+      : { value: formatNumber(Math.max(0, g.remaining)), suffix: `${unit} to go` };
   }
-  if (g.status === 'over') {
-    return `${formatNumber(-g.remaining)} ${unit} over budget.`;
-  }
-  return `${formatNumber(g.logged)} of ${formatNumber(g.target)} ${unit} logged.`;
+  return g.remaining < 0
+    ? { value: formatNumber(-g.remaining), suffix: `${unit} over` }
+    : { value: formatNumber(g.remaining), suffix: `${unit} left` };
 }

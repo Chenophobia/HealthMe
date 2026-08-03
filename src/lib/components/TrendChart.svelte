@@ -67,8 +67,16 @@
       {/each}
 
       <!-- The seven-day average is the line to judge, so it is the only
-           thing on the chart drawn in the accent. -->
+           thing on the chart drawn in the accent — and the only thing given
+           a fill, which is what makes the trend readable at a glance rather
+           than traced. -->
       {#if average && average.length > 1}
+        <path
+          d="{path(average)} L{x(average.at(-1)!.date)},{BASELINE} L{x(
+            average[0].date
+          )},{BASELINE} Z"
+          class="fill-accent opacity-12"
+        />
         <path
           d={path(average)}
           fill="none"

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { gauge, formatNumber, formatSigned, gaugeCaption } from './readout';
+import { gauge, formatNumber, formatSigned, gaugeHeadline, toneFor } from './readout';
 
 describe('gauge — ceiling (calories)', () => {
   it('fills proportionally and reports what is left', () => {
@@ -26,6 +26,23 @@ describe('gauge — ceiling (calories)', () => {
 
   it('is empty before anything is logged', () => {
     expect(gauge(0, 1750).status).toBe('empty');
+  });
+
+  it('warns once the room left is running out, before the target is hit', () => {
+    expect(gauge(1400, 1750).status).toBe('progress'); // 80%
+    expect(gauge(1500, 1750).status).toBe('near'); // 86%
+    expect(gauge(1660, 1750).status).toBe('near'); // 94.9% — still short of met
+    expect(gauge(1670, 1750).status).toBe('met'); // 95.4%
+  });
+});
+
+describe('toneFor', () => {
+  it('maps each status to the band it paints in', () => {
+    expect(toneFor('empty')).toBe('muted');
+    expect(toneFor('progress')).toBe('accent');
+    expect(toneFor('near')).toBe('warn');
+    expect(toneFor('met')).toBe('good');
+    expect(toneFor('over')).toBe('over');
   });
 });
 
@@ -79,16 +96,31 @@ describe('formatSigned', () => {
   });
 });
 
-describe('gaugeCaption', () => {
-  it('counts a ceiling down, then reports the overage', () => {
-    expect(gaugeCaption(gauge(1140, 1750), 'kcal')).toBe('1,140 of 1,750 kcal logged.');
-    expect(gaugeCaption(gauge(2000, 1750), 'kcal')).toBe('250 kcal over budget.');
+describe('gaugeHeadline', () => {
+  it('counts a ceiling down, then flips to the overage', () => {
+    expect(gaugeHeadline(gauge(1140, 1750), 'kcal')).toEqual({
+      value: '610',
+      suffix: 'kcal left'
+    });
+    expect(gaugeHeadline(gauge(2000, 1750), 'kcal')).toEqual({
+      value: '250',
+      suffix: 'kcal over'
+    });
   });
 
-  it('counts a floor up, then confirms it is cleared', () => {
-    expect(gaugeCaption(gauge(111, 150, 'floor', 160), 'g', 'floor')).toBe('39 g to go.');
-    expect(gaugeCaption(gauge(155, 150, 'floor', 160), 'g', 'floor')).toBe(
-      'Floor cleared — 155 g logged.'
-    );
+  it('counts a floor up, then reports the total once cleared', () => {
+    expect(gaugeHeadline(gauge(111, 150, 'floor', 160), 'g', 'floor')).toEqual({
+      value: '39',
+      suffix: 'g to go'
+    });
+    expect(gaugeHeadline(gauge(155, 150, 'floor', 160), 'g', 'floor')).toEqual({
+      value: '155',
+      suffix: 'g logged'
+    });
+  });
+
+  it('never shows a negative amount left', () => {
+    expect(gaugeHeadline(gauge(0, 1750), 'kcal').value).toBe('1,750');
+    expect(gaugeHeadline(gauge(200, 150, 'floor'), 'g', 'floor').value).toBe('200');
   });
 });

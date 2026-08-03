@@ -1,6 +1,14 @@
 <script lang="ts">
-  import { gauge as toGauge, formatNumber, type GaugeKind } from '$lib/readout';
+  import { gauge as toGauge, formatNumber, toneFor, type GaugeKind } from '$lib/readout';
   import GaugeBar from './GaugeBar.svelte';
+
+  const TEXT: Record<string, string> = {
+    muted: 'text-ink-muted',
+    accent: 'text-ink',
+    warn: 'text-warn',
+    good: 'text-good',
+    over: 'text-over'
+  };
 
   let {
     label,
@@ -25,9 +33,7 @@
   <div class="flex items-baseline justify-between gap-3">
     <span class="eyebrow text-ink-muted">{label}</span>
     <span class="tabular font-mono text-sm">
-      <span class="font-semibold {g.status === 'over' ? 'text-over' : 'text-ink'}"
-        >{formatNumber(g.logged)}</span
-      >
+      <span class="font-semibold {TEXT[toneFor(g.status)]}">{formatNumber(g.logged)}</span>
       <span class="text-ink-muted">/ {formatNumber(g.scale)} {unit}</span>
     </span>
   </div>
