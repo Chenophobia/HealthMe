@@ -337,6 +337,33 @@ export function goalIntake(input: {
 
 export type DeficitDay = { date: string; deficitKcal: number | null };
 
+export type Carry = {
+  /** Complete days counted. */
+  days: number;
+  /** Positive means behind the pace; negative means ahead of it. */
+  kcal: number;
+};
+
+/**
+ * How far behind (or ahead) of the pace a run of days left you.
+ *
+ * Fed only the days *since the last weigh-in*, and that restriction is the
+ * whole design. The pace is re-derived from measured weight every time you
+ * weigh in, so the scale has already absorbed everything up to that point —
+ * counting those days again here would book the same shortfall twice. What's
+ * left to carry is the stretch the scale hasn't seen yet.
+ */
+export function carriedShortfall(perDayKcal: number, days: DeficitDay[]): Carry | null {
+  const complete = days.filter((d) => d.deficitKcal !== null) as {
+    date: string;
+    deficitKcal: number;
+  }[];
+  if (complete.length === 0) return null;
+
+  const kcal = complete.reduce((sum, d) => sum + (perDayKcal - d.deficitKcal), 0);
+  return { days: complete.length, kcal: Math.round(kcal) };
+}
+
 export type DeficitSummary = {
   /** Days with both a BMR and an intake figure — the rest are not counted. */
   days: number;

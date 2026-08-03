@@ -181,6 +181,30 @@
                 more, or from a later date.
               </p>
             {/if}
+
+            <!-- The running balance since the last weigh-in. Deliberately not
+                 folded into the daily number: the pace already re-derives
+                 itself from measured weight, and adding an estimate on top
+                 would count the same shortfall twice. -->
+            {#if data.carry}
+              <p class="text-ink-muted mt-3 text-sm">
+                {#if data.carry.kcal > 0}
+                  Since your last weigh-in you're
+                  <span class="text-warn font-semibold"
+                    >{formatNumber(data.carry.kcal)} kcal behind</span
+                  >
+                  the pace, over {data.carry.days}
+                  {data.carry.days === 1 ? 'day' : 'days'}. Your next weigh-in folds that in.
+                {:else}
+                  Since your last weigh-in you're
+                  <span class="text-good font-semibold"
+                    >{formatNumber(-data.carry.kcal)} kcal ahead</span
+                  >
+                  of the pace, over {data.carry.days}
+                  {data.carry.days === 1 ? 'day' : 'days'}.
+                {/if}
+              </p>
+            {/if}
           </div>
         {:else}
           <p class="text-ink-muted mt-4 text-sm">

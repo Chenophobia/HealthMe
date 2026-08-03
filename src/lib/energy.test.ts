@@ -10,6 +10,7 @@ import {
   goalPace,
   typicalActive,
   goalIntake,
+  carriedShortfall,
   KCAL_PER_KG_FAT
 } from './energy';
 
@@ -327,5 +328,46 @@ describe('goalIntake', () => {
         floorKcal: 1600
       })
     ).toBeNull();
+  });
+});
+
+describe('carriedShortfall', () => {
+  it('adds up how far short of the pace a run of days fell', () => {
+    const c = carriedShortfall(834, [
+      { date: '2026-08-01', deficitKcal: 500 }, // 334 short
+      { date: '2026-08-02', deficitKcal: 600 } // 234 short
+    ])!;
+    expect(c.days).toBe(2);
+    expect(c.kcal).toBe(568);
+  });
+
+  it('goes negative when the days beat the pace', () => {
+    const c = carriedShortfall(500, [
+      { date: '2026-08-01', deficitKcal: 800 },
+      { date: '2026-08-02', deficitKcal: 700 }
+    ])!;
+    expect(c.kcal).toBe(-500);
+  });
+
+  it('nets a good day against a bad one', () => {
+    const c = carriedShortfall(500, [
+      { date: '2026-08-01', deficitKcal: 200 }, // 300 short
+      { date: '2026-08-02', deficitKcal: 800 } // 300 over
+    ])!;
+    expect(c.kcal).toBe(0);
+  });
+
+  it('skips days it cannot price rather than scoring them as zero deficit', () => {
+    const c = carriedShortfall(834, [
+      { date: '2026-08-01', deficitKcal: null },
+      { date: '2026-08-02', deficitKcal: 834 }
+    ])!;
+    expect(c.days).toBe(1);
+    expect(c.kcal).toBe(0);
+  });
+
+  it('is null when there is nothing complete to carry', () => {
+    expect(carriedShortfall(834, [])).toBeNull();
+    expect(carriedShortfall(834, [{ date: '2026-08-01', deficitKcal: null }])).toBeNull();
   });
 });

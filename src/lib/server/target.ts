@@ -1,15 +1,21 @@
 import type { Db } from './db/connect';
 import { listMetrics } from './metrics';
 import { listActiveEnergy } from './activity';
+import { dailyKcalTotals } from './meals';
 import { getProfile } from './profile';
 import { KCAL_TARGET, KCAL_FLOOR } from '$lib/targets';
+import { rollingAverage } from '$lib/rolling';
 import {
   resolveBmr,
+  energyBalance,
   goalPace,
   typicalActive,
   goalIntake,
+  carriedShortfall,
+  type DeficitDay,
   type GoalPace,
-  type GoalIntake
+  type GoalIntake,
+  type Carry
 } from '$lib/energy';
 
 /*
@@ -24,19 +30,57 @@ export type DailyTarget = {
   pace: GoalPace | null;
   /** Null when the goal can't be costed yet — no weigh-in or no body profile. */
   intake: GoalIntake | null;
+  /** Behind/ahead over the days the scale hasn't absorbed yet. Null if none. */
+  carry: Carry | null;
   /** What the gauges fill against. Falls back to the program's fixed anchor. */
   kcalTarget: number;
 };
+
+/**
+ * The per-day energy balance, oldest first.
+ *
+ * Only days with food logged count. A day with no meals isn't a day you ate
+ * nothing — it's a day you didn't log, and counting it would book a ~2,000
+ * kcal deficit that never happened.
+ */
+export function deficitSeries(db: Db, userId: number): DeficitDay[] {
+  const metrics = listMetrics(db, userId);
+  const profile = getProfile(db, userId);
+  const activeByDate = new Map(listActiveEnergy(db, userId).map((a) => [a.date, a.activeKcal]));
+
+  return dailyKcalTotals(db, userId)
+    .filter((d) => d.kcal > 0)
+    .map((d) => ({
+      date: d.date,
+      deficitKcal: energyBalance({
+        bmrKcal: resolveBmr(d.date, metrics, profile)?.kcal ?? null,
+        activeKcal: activeByDate.get(d.date) ?? null,
+        eatenKcal: d.kcal
+      }).deficitKcal
+    }));
+}
 
 export function dailyTarget(db: Db, userId: number, today: string): DailyTarget {
   const metrics = listMetrics(db, userId);
   const profile = getProfile(db, userId);
   const latest = metrics.at(-1) ?? null;
 
+  /*
+   * Paced from the seven-day average, not the last reading. A single weigh-in
+   * carries 1–2 kg of water noise, and at ~35 days left that swing alone moves
+   * the required deficit by more than 300 kcal/day — the target would lurch
+   * around for reasons that have nothing to do with progress.
+   */
+  const smoothed = rollingAverage(
+    metrics.map((m) => ({ date: m.date, value: m.weightKg })),
+    7
+  );
+  const currentKg = smoothed.at(-1)?.value ?? latest?.weightKg ?? null;
+
   const pace =
-    profile.goalWeightKg !== null && profile.goalDate !== null && latest
+    profile.goalWeightKg !== null && profile.goalDate !== null && currentKg !== null
       ? goalPace({
-          currentKg: latest.weightKg,
+          currentKg,
           goalKg: profile.goalWeightKg,
           today,
           goalDate: profile.goalDate
@@ -58,5 +102,19 @@ export function dailyTarget(db: Db, userId: number, today: string): DailyTarget 
         })
       : null;
 
-  return { pace, intake, kcalTarget: intake?.intakeKcal ?? KCAL_TARGET };
+  /*
+   * Only the days after the last weigh-in and before today: the scale has
+   * already priced in everything up to the weigh-in, and today isn't over.
+   */
+  const carry =
+    pace && !pace.reached && !pace.expired
+      ? carriedShortfall(
+          pace.perDayKcal,
+          deficitSeries(db, userId).filter(
+            (d) => d.date < today && (latest === null || d.date > latest.date)
+          )
+        )
+      : null;
+
+  return { pace, intake, carry, kcalTarget: intake?.intakeKcal ?? KCAL_TARGET };
 }

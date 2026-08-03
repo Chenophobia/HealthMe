@@ -1,11 +1,9 @@
 import { db } from '$lib/server/db';
 import { listMetrics } from '$lib/server/metrics';
-import { listActiveEnergy } from '$lib/server/activity';
-import { dailyKcalTotals } from '$lib/server/meals';
 import { mealStreak } from '$lib/server/streaks';
-import { getProfile } from '$lib/server/profile';
+import { deficitSeries } from '$lib/server/target';
 import { todayLocal } from '$lib/dates';
-import { resolveBmr, deficitSummary, energyBalance, weightChangeBetween } from '$lib/energy';
+import { deficitSummary, weightChangeBetween } from '$lib/energy';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -13,24 +11,8 @@ export const load: PageServerLoad = async ({ locals }) => {
   const userId = locals.user!.id;
   const metrics = listMetrics(db, userId);
 
-  const activeByDate = new Map(listActiveEnergy(db, userId).map((a) => [a.date, a.activeKcal]));
-  const profile = getProfile(db, userId);
-
-  /*
-   * Only days that actually have food logged count. A day with no meals isn't
-   * a day you ate nothing — it's a day you didn't log, and counting it would
-   * book a ~2,000 kcal deficit that never happened.
-   */
-  const days = dailyKcalTotals(db, userId)
-    .filter((d) => d.kcal > 0)
-    .map((d) => ({
-      date: d.date,
-      deficitKcal: energyBalance({
-        bmrKcal: resolveBmr(d.date, metrics, profile)?.kcal ?? null,
-        activeKcal: activeByDate.get(d.date) ?? null,
-        eatenKcal: d.kcal
-      }).deficitKcal
-    }));
+  // Same series Today paces against — built once, in one place.
+  const days = deficitSeries(db, userId);
 
   const complete = days.filter((d) => d.deficitKcal !== null);
   const summary = deficitSummary(days);
