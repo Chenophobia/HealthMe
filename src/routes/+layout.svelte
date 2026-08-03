@@ -12,6 +12,30 @@
   ];
 
   const isActive = (href: string) => page.url.pathname === href;
+
+  /*
+   * Keep the window pinned at the origin.
+   *
+   * app.css locks the document, but iOS still scrolls the *window* to bring a
+   * focused field above the keyboard — which slides the fixed header and tab
+   * bar out of place and leaves them there. It shows up on Meals because that
+   * page has eleven inputs and the others now have none. Nothing in this app
+   * ever legitimately scrolls the window (the shell's middle region does all
+   * the scrolling), so snapping it back can't fight anything real.
+   */
+  $effect(() => {
+    const reset = () => {
+      if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0);
+    };
+    window.addEventListener('scroll', reset, { passive: true });
+    window.addEventListener('focusout', reset);
+    window.visualViewport?.addEventListener('resize', reset);
+    return () => {
+      window.removeEventListener('scroll', reset);
+      window.removeEventListener('focusout', reset);
+      window.visualViewport?.removeEventListener('resize', reset);
+    };
+  });
 </script>
 
 <!--

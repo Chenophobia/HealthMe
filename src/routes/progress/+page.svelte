@@ -2,6 +2,7 @@
   import { rollingAverage } from '$lib/rolling';
   import { formatNumber, formatSigned } from '$lib/readout';
   import TrendChart from '$lib/components/TrendChart.svelte';
+  import DeficitChart from '$lib/components/DeficitChart.svelte';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
@@ -72,6 +73,10 @@
         {data.deficit.days === 1 ? 'day' : 'days'}
       </span>
     </p>
+
+    <div class="border-hairline mt-4 border-t pt-4">
+      <DeficitChart days={data.deficitDays} />
+    </div>
 
     {#if data.actualChangeKg !== null && data.deficit.days >= 14}
       <dl class="border-hairline mt-4 grid grid-cols-2 gap-4 border-t pt-4">

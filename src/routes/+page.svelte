@@ -7,6 +7,7 @@
   import { energyBalance } from '$lib/energy';
   import { formatNumber } from '$lib/readout';
   import Meter from '$lib/components/Meter.svelte';
+  import StatRow from '$lib/components/StatRow.svelte';
   import TrendChart from '$lib/components/TrendChart.svelte';
   import type { PageData, ActionData } from './$types';
 
@@ -55,10 +56,7 @@
 </header>
 
 <!-- ============================= The readout ============================= -->
-<section
-  class="card from-accent/18 via-accent/6 mt-4 bg-gradient-to-br to-transparent p-5 sm:p-6"
-  aria-label="Today's budget"
->
+<section class="card mt-4 p-4 sm:p-5" aria-label="Today's budget">
   <div class="grid gap-6 sm:grid-cols-2 sm:gap-8">
     <Meter label="Calories" value={data.totals.kcal} target={KCAL_TARGET} unit="kcal" />
     <div class="border-hairline border-t pt-6 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-8">
@@ -72,21 +70,14 @@
       />
     </div>
   </div>
-  <a
-    href="/meals"
-    class="text-accent mt-5 inline-flex min-h-11 items-center text-sm font-semibold sm:mt-6"
-  >
+  <a href="/meals" class="text-accent mt-4 inline-flex min-h-11 items-center text-sm font-semibold">
     Log a meal →
   </a>
 </section>
 
 <!-- ============================= Energy balance ============================= -->
-<section
-  class="card mt-4 overflow-hidden {balance.status === 'surplus'
-    ? 'from-over/18 via-over/6'
-    : 'from-good/18 via-good/6'} bg-gradient-to-br to-transparent"
->
-  <div class="p-5 sm:p-6">
+<section class="card mt-4 overflow-hidden">
+  <div class="p-4 sm:p-5">
     <p class="eyebrow text-ink-muted">Energy balance</p>
 
     {#if balance.status === 'unknown'}
@@ -108,30 +99,22 @@
         </span>
       </p>
 
-      <dl class="border-hairline mt-5 grid grid-cols-3 gap-3 border-t pt-4">
-        <div class="flex flex-col gap-1.5">
-          <dt class="eyebrow text-ink-muted">BMR{data.bmrSource === 'computed' ? ' · est' : ''}</dt>
-          <dd class="tabular font-mono text-lg font-semibold">
-            {formatNumber(balance.bmrKcal ?? 0)}
-          </dd>
-        </div>
-        <div class="border-hairline flex flex-col gap-1.5 border-l pl-3">
-          <dt class="eyebrow text-ink-muted">Active</dt>
-          <dd
-            class="tabular font-mono text-lg font-semibold {balance.hasActive
-              ? ''
-              : 'text-ink-muted'}"
-          >
-            {balance.hasActive ? formatNumber(balance.activeKcal) : '—'}
-          </dd>
-        </div>
-        <div class="border-hairline flex flex-col gap-1.5 border-l pl-3">
-          <dt class="eyebrow text-ink-muted">Eaten</dt>
-          <dd class="tabular font-mono text-lg font-semibold">
-            {formatNumber(balance.eatenKcal)}
-          </dd>
-        </div>
-      </dl>
+      <div class="border-hairline mt-4 border-t pt-4">
+        <StatRow
+          stats={[
+            {
+              label: data.bmrSource === 'computed' ? 'BMR · est' : 'BMR',
+              value: formatNumber(balance.bmrKcal ?? 0)
+            },
+            {
+              label: 'Active',
+              value: balance.hasActive ? formatNumber(balance.activeKcal) : '—',
+              muted: !balance.hasActive
+            },
+            { label: 'Eaten', value: formatNumber(balance.eatenKcal) }
+          ]}
+        />
+      </div>
     {/if}
   </div>
 
@@ -181,18 +164,15 @@
 
 <!-- ============================= Scheduled session ============================= -->
 {#if data.scheduled}
-  <a
-    href="/workouts"
-    class="card from-accent/18 via-accent/6 mt-4 flex items-center justify-between gap-3 bg-gradient-to-br to-transparent p-4"
-  >
-    <span class="flex flex-col gap-1">
+  <a href="/workouts" class="card mt-4 flex items-center justify-between gap-3 p-4 sm:p-5">
+    <span class="flex flex-col gap-1.5">
       <span class="eyebrow text-ink-muted">Session</span>
       <span class="text-lg font-semibold">{SESSION_LABELS[data.scheduled]} day</span>
     </span>
     <span class="text-accent text-sm font-semibold whitespace-nowrap">See exercises →</span>
   </a>
 {:else}
-  <div class="card mt-4 flex flex-col gap-1 p-4">
+  <div class="card mt-4 flex flex-col gap-1.5 p-4 sm:p-5">
     <span class="eyebrow text-ink-muted">Session</span>
     <span class="text-ink-muted">Rest day</span>
   </div>
@@ -200,21 +180,8 @@
 
 <!-- ============================= Weigh-in ============================= -->
 <section class="card mt-4 overflow-hidden">
-  <div class="flex items-center justify-between gap-3 p-4">
-    <div class="flex flex-col gap-1.5">
-      <span class="eyebrow text-ink-muted">Weigh-in</span>
-      {#if data.latest}
-        <p class="tabular font-mono">
-          <span class="text-lg font-semibold">{data.latest.weightKg} kg</span>
-          {#if data.latest.bodyFatPct !== null}
-            <span class="text-ink-muted text-sm">· {data.latest.bodyFatPct}%</span>
-          {/if}
-          <span class="text-ink-muted text-sm">· {data.latest.date}</span>
-        </p>
-      {:else}
-        <p class="text-ink-muted text-sm">None yet</p>
-      {/if}
-    </div>
+  <div class="flex items-center justify-between gap-3 p-4 sm:p-5">
+    <span class="eyebrow text-ink-muted">Weigh-in</span>
     {#if !showWeighIn}
       <button type="button" class="btn-quiet" onclick={() => (showWeighIn = true)}>Log</button>
     {/if}
@@ -225,7 +192,7 @@
       method="POST"
       action="?/weighin"
       use:enhance={closeOnSuccess(() => (showWeighIn = false))}
-      class="border-hairline grid grid-cols-2 gap-3 border-t p-4 sm:grid-cols-[1fr_1fr_1fr_1fr_auto] sm:items-end"
+      class="border-hairline grid grid-cols-2 gap-3 border-t p-4 sm:grid-cols-[1fr_1fr_1fr_1fr_auto] sm:items-end sm:p-5"
     >
       <label class="col-span-2 flex flex-col gap-1.5 sm:col-span-1">
         <span class="eyebrow text-ink-muted">Date</span>
@@ -259,12 +226,28 @@
         <p class="text-over col-span-2 text-sm sm:col-span-5">{form.error}</p>
       {/if}
     </form>
+  {:else if data.latest}
+    <div class="border-hairline border-t p-4 sm:p-5">
+      <StatRow
+        stats={[
+          { label: 'Weight', value: `${data.latest.weightKg} kg` },
+          {
+            label: 'Body fat',
+            value: data.latest.bodyFatPct !== null ? `${data.latest.bodyFatPct}%` : '—',
+            muted: data.latest.bodyFatPct === null
+          },
+          { label: 'On', value: data.latest.date }
+        ]}
+      />
+    </div>
+  {:else}
+    <p class="border-hairline text-ink-muted border-t p-4 text-sm sm:p-5">None yet</p>
   {/if}
 </section>
 
 <!-- ============================= Body profile ============================= -->
 <section class="card mt-4 overflow-hidden">
-  <div class="flex items-center justify-between gap-3 p-4">
+  <div class="flex items-center justify-between gap-3 p-4 sm:p-5">
     <span class="eyebrow text-ink-muted">Body profile</span>
     {#if !editProfile}
       <button type="button" class="btn-quiet" onclick={() => (editProfile = true)}>Edit</button>
@@ -276,7 +259,7 @@
       method="POST"
       action="?/profile"
       use:enhance={closeOnSuccess(() => (editProfile = false))}
-      class="border-hairline grid grid-cols-2 gap-3 border-t p-4 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
+      class="border-hairline grid grid-cols-2 gap-3 border-t p-4 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end sm:p-5"
     >
       <label class="flex flex-col gap-1.5">
         <span class="eyebrow text-ink-muted">Height cm</span>
@@ -310,26 +293,17 @@
       {/if}
     </form>
   {:else if profileSet}
-    <dl class="border-hairline grid grid-cols-3 gap-3 border-t p-4">
-      <div class="flex flex-col gap-1.5">
-        <dt class="eyebrow text-ink-muted">Height</dt>
-        <dd class="tabular font-mono text-sm font-semibold whitespace-nowrap">
-          {data.profile.heightCm} cm
-        </dd>
-      </div>
-      <div class="border-hairline flex flex-col gap-1.5 border-l pl-3">
-        <dt class="eyebrow text-ink-muted">Born</dt>
-        <dd class="tabular font-mono text-sm font-semibold whitespace-nowrap">
-          {data.profile.birthDate}
-        </dd>
-      </div>
-      <div class="border-hairline flex flex-col gap-1.5 border-l pl-3">
-        <dt class="eyebrow text-ink-muted">Sex</dt>
-        <dd class="text-sm font-semibold">{SEX_LABELS[data.profile.sex ?? ''] ?? '—'}</dd>
-      </div>
-    </dl>
+    <div class="border-hairline border-t p-4 sm:p-5">
+      <StatRow
+        stats={[
+          { label: 'Height', value: `${data.profile.heightCm} cm` },
+          { label: 'Born', value: data.profile.birthDate ?? '—' },
+          { label: 'Sex', value: SEX_LABELS[data.profile.sex ?? ''] ?? '—' }
+        ]}
+      />
+    </div>
   {:else}
-    <p class="border-hairline text-ink-muted border-t p-4 text-sm">
+    <p class="border-hairline text-ink-muted border-t p-4 text-sm sm:p-5">
       Not set — the deficit needs it.
     </p>
   {/if}

@@ -41,6 +41,8 @@ export const load: PageServerLoad = async ({ locals }) => {
     metrics,
     streak: mealStreak(db, userId, date),
     deficit: summary,
+    // The per-day series behind the average, for the chart.
+    deficitDays: days.slice(-60),
     // What the scale did over the same span — the check on the estimate.
     actualChangeKg: window ? weightChangeBetween(metrics, window.from, window.to) : null
   };

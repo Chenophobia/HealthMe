@@ -23,6 +23,10 @@
   ];
 
   const isToday = $derived(data.date === data.today);
+
+  /* One card, two ways to fill it. Splitting these across separate cards made
+     the page read as two unrelated jobs. */
+  let logMode: 'recipe' | 'custom' = $state('recipe');
 </script>
 
 <svelte:head><title>Meals — health-me</title></svelte:head>
@@ -68,9 +72,6 @@
       />
     </div>
   </div>
-  <p class="text-ink-muted mt-4 text-xs">
-    The protein bar runs to the {PROTEIN_AIM_G} g aim; the notch is the {PROTEIN_TARGET_G} g floor.
-  </p>
 </section>
 
 <!-- ============================= The day's log ============================= -->
@@ -104,82 +105,96 @@
   </div>
 </section>
 
-<!-- ============================= Log a recipe ============================= -->
-<section class="mt-8">
-  <h2 class="eyebrow text-ink-muted">Log a recipe</h2>
-  <form
-    method="POST"
-    action="?/recipe"
-    use:enhance
-    class="card mt-3 flex flex-col gap-3 p-4 sm:flex-row sm:items-end"
-  >
-    <input type="hidden" name="date" value={data.date} />
-    <label class="flex flex-col gap-1.5 sm:w-36">
-      <span class="eyebrow text-ink-muted">Slot</span>
-      <select name="mealSlot" value="lunch" class="field">
-        {#each Object.entries(mealSlotLabels) as [value, label] (value)}
-          <option {value}>{label}</option>
-        {/each}
-      </select>
-    </label>
-    <label class="flex flex-1 flex-col gap-1.5">
-      <span class="eyebrow text-ink-muted">Recipe</span>
-      <select name="recipeId" class="field">
-        {#each recipeGroups as group (group.type)}
-          {@const recipes = data.recipes.filter((r) => r.mealType === group.type)}
-          {#if recipes.length > 0}
-            <optgroup label={group.label}>
-              {#each recipes as recipe (recipe.id)}
-                <option value={recipe.id}>
-                  {recipe.code} · {recipe.name} · {recipe.kcal} kcal / {recipe.proteinG} g P
-                </option>
-              {/each}
-            </optgroup>
-          {/if}
-        {/each}
-      </select>
-    </label>
-    <button class="btn-primary">Log recipe</button>
-  </form>
-  {#if form?.recipeError}
-    <p class="text-over mt-3 text-sm">{form.recipeError}</p>
-  {/if}
-</section>
+<!-- ============================= Log ============================= -->
+<section class="card mt-8 overflow-hidden">
+  <div class="flex items-center justify-between gap-3 p-4">
+    <span class="eyebrow text-ink-muted">Log</span>
+    <div class="border-hairline flex rounded-sm border p-0.5" role="group" aria-label="Entry type">
+      {#each [{ id: 'recipe', label: 'Recipe' }, { id: 'custom', label: 'Custom' }] as mode (mode.id)}
+        <button
+          type="button"
+          aria-pressed={logMode === mode.id}
+          class="rounded-xs px-3 py-1.5 text-sm font-medium {logMode === mode.id
+            ? 'bg-accent text-on-accent'
+            : 'text-ink-muted hover:text-ink'}"
+          onclick={() => (logMode = mode.id as 'recipe' | 'custom')}
+        >
+          {mode.label}
+        </button>
+      {/each}
+    </div>
+  </div>
 
-<!-- ============================= Log custom ============================= -->
-<section class="mt-8">
-  <details class="card p-4">
-    <summary class="eyebrow text-ink-muted flex min-h-11 cursor-pointer items-center">
-      Log something custom
-    </summary>
-    <form method="POST" action="?/custom" use:enhance class="mt-3">
+  {#if logMode === 'recipe'}
+    <form
+      method="POST"
+      action="?/recipe"
+      use:enhance
+      class="border-hairline flex flex-col gap-3 border-t p-4 sm:flex-row sm:items-end"
+    >
       <input type="hidden" name="date" value={data.date} />
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-[8rem_1fr_6rem_6rem_auto] sm:items-end">
-        <label class="flex flex-col gap-1.5">
-          <span class="eyebrow text-ink-muted">Slot</span>
-          <select name="mealSlot" value="lunch" class="field">
-            {#each Object.entries(mealSlotLabels) as [value, label] (value)}
-              <option {value}>{label}</option>
-            {/each}
-          </select>
-        </label>
-        <label class="flex flex-col gap-1.5">
-          <span class="eyebrow text-ink-muted">Name</span>
-          <input name="name" required class="field" />
-        </label>
-        <label class="flex flex-col gap-1.5">
-          <span class="eyebrow text-ink-muted">Kcal</span>
-          <input name="kcal" type="number" min="0" required class="field" />
-        </label>
-        <label class="flex flex-col gap-1.5">
-          <span class="eyebrow text-ink-muted">Protein g</span>
-          <input name="proteinG" type="number" min="0" required class="field" />
-        </label>
-        <button class="btn-primary col-span-2 sm:col-span-1">Log custom</button>
-      </div>
-      {#if form?.error}
-        <p class="text-over mt-3 text-sm">{form.error}</p>
+      <label class="flex flex-col gap-1.5 sm:w-36">
+        <span class="eyebrow text-ink-muted">Slot</span>
+        <select name="mealSlot" value="lunch" class="field">
+          {#each Object.entries(mealSlotLabels) as [value, label] (value)}
+            <option {value}>{label}</option>
+          {/each}
+        </select>
+      </label>
+      <label class="flex flex-1 flex-col gap-1.5">
+        <span class="eyebrow text-ink-muted">Recipe</span>
+        <select name="recipeId" class="field">
+          {#each recipeGroups as group (group.type)}
+            {@const recipes = data.recipes.filter((r) => r.mealType === group.type)}
+            {#if recipes.length > 0}
+              <optgroup label={group.label}>
+                {#each recipes as recipe (recipe.id)}
+                  <option value={recipe.id}>
+                    {recipe.code} · {recipe.name} · {recipe.kcal} kcal / {recipe.proteinG} g P
+                  </option>
+                {/each}
+              </optgroup>
+            {/if}
+          {/each}
+        </select>
+      </label>
+      <button class="btn-primary">Add</button>
+      {#if form?.recipeError}
+        <p class="text-over text-sm">{form.recipeError}</p>
       {/if}
     </form>
-  </details>
+  {:else}
+    <form
+      method="POST"
+      action="?/custom"
+      use:enhance
+      class="border-hairline grid grid-cols-2 gap-3 border-t p-4 sm:grid-cols-[8rem_1fr_6rem_6rem_auto] sm:items-end"
+    >
+      <input type="hidden" name="date" value={data.date} />
+      <label class="flex flex-col gap-1.5">
+        <span class="eyebrow text-ink-muted">Slot</span>
+        <select name="mealSlot" value="lunch" class="field">
+          {#each Object.entries(mealSlotLabels) as [value, label] (value)}
+            <option {value}>{label}</option>
+          {/each}
+        </select>
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="eyebrow text-ink-muted">Name</span>
+        <input name="name" required class="field" />
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="eyebrow text-ink-muted">Kcal</span>
+        <input name="kcal" type="number" min="0" required class="field" />
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="eyebrow text-ink-muted">Protein g</span>
+        <input name="proteinG" type="number" min="0" required class="field" />
+      </label>
+      <button class="btn-primary col-span-2 sm:col-span-1">Add</button>
+      {#if form?.error}
+        <p class="text-over col-span-2 text-sm sm:col-span-5">{form.error}</p>
+      {/if}
+    </form>
+  {/if}
 </section>
