@@ -14,11 +14,19 @@
   const isActive = (href: string) => page.url.pathname === href;
 </script>
 
-{#if data.user}
-  <div class="flex min-h-dvh flex-col">
-    <header
-      class="border-hairline bg-surface/85 pad-top-safe sticky top-0 z-20 border-b backdrop-blur"
-    >
+<!--
+  App shell, not a scrolling document.
+
+  The window itself never scrolls (html/body are locked in app.css) — this
+  frame is exactly one viewport tall and only the middle region scrolls. On
+  iOS a scrolling document rubber-bands: drag anywhere and the whole page
+  slides under the fixed chrome, which reads as the layout coming apart. With
+  the scroll moved inside, the header and tab bar are structurally fixed
+  rather than sticky, and there is no document left to bounce.
+-->
+<div class="flex h-dvh flex-col overflow-hidden">
+  {#if data.user}
+    <header class="border-hairline bg-surface pad-top-safe z-20 shrink-0 border-b">
       <div class="mx-auto flex w-full max-w-3xl items-center gap-4 px-4 pb-2 sm:px-6">
         <a href="/" class="eyebrow text-ink font-semibold">health&#8209;me</a>
 
@@ -44,13 +52,23 @@
         </form>
       </div>
     </header>
+  {/if}
 
-    <main class="scroll-clear-tabbar mx-auto w-full max-w-3xl flex-1 px-4 pt-6 sm:px-6">
+  <!-- min-h-0 lets this flex child actually shrink; without it the region
+       grows to its content and pushes the tab bar off-screen. -->
+  <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+    {#if data.user}
+      <main class="mx-auto w-full max-w-3xl px-4 pt-6 pb-12 sm:px-6">
+        {@render children()}
+      </main>
+    {:else}
       {@render children()}
-    </main>
+    {/if}
+  </div>
 
+  {#if data.user}
     <nav
-      class="border-hairline bg-surface/90 pad-bottom-safe fixed inset-x-0 bottom-0 z-20 border-t backdrop-blur md:hidden"
+      class="border-hairline bg-surface pad-bottom-safe z-20 shrink-0 border-t md:hidden"
       aria-label="Primary"
     >
       <ul class="mx-auto flex w-full max-w-md">
@@ -76,7 +94,5 @@
         {/each}
       </ul>
     </nav>
-  </div>
-{:else}
-  {@render children()}
-{/if}
+  {/if}
+</div>

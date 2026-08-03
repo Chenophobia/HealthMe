@@ -48,6 +48,22 @@
 
 /* ============================ Base ============================ */
 
+/*
+ * The window does not scroll — the app shell in +layout.svelte is one
+ * viewport tall and scrolls its own middle region instead.
+ *
+ * Without this iOS rubber-bands the document: any stray drag slides the whole
+ * page under the fixed header and tab bar, so the chrome appears to detach
+ * from the content. Locking the document also takes pull-to-refresh out of
+ * the way, which on a logging app only ever fires by accident.
+ */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 html {
   /* Safari inflates text on rotation to landscape without this. */
   -webkit-text-size-adjust: 100%;
@@ -111,14 +127,6 @@ input[type='date'] {
 
 @utility pad-bottom-safe {
   padding-bottom: calc(0.375rem + env(safe-area-inset-bottom));
-}
-
-/* Keeps the last card clear of the fixed tab bar, which only exists on phones. */
-@utility scroll-clear-tabbar {
-  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
-  @media (width >= 48rem) {
-    padding-bottom: 3rem;
-  }
 }
 
 /* ========================== Typographic roles ==========================
