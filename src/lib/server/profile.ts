@@ -13,18 +13,30 @@ import { ageOn, type BodyProfile } from '$lib/energy';
 
 export function getProfile(db: Db, userId: number): BodyProfile {
   const [row] = db
-    .select({ heightCm: users.heightCm, birthDate: users.birthDate, sex: users.sex })
+    .select({
+      heightCm: users.heightCm,
+      birthDate: users.birthDate,
+      sex: users.sex,
+      goalWeightKg: users.goalWeightKg,
+      goalDate: users.goalDate
+    })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1)
     .all();
-  return row ?? { heightCm: null, birthDate: null, sex: null };
+  return row ?? { heightCm: null, birthDate: null, sex: null, goalWeightKg: null, goalDate: null };
 }
 
 export function setProfile(
   db: Db,
   userId: number,
-  profile: { heightCm?: number | null; birthDate?: string | null; sex?: string | null },
+  profile: {
+    heightCm?: number | null;
+    birthDate?: string | null;
+    sex?: string | null;
+    goalWeightKg?: number | null;
+    goalDate?: string | null;
+  },
   today: string = todayLocal()
 ): void {
   const heightCm = profile.heightCm ?? null;
@@ -44,5 +56,21 @@ export function setProfile(
     throw new Error('sex must be male or female');
   }
 
-  db.update(users).set({ heightCm, birthDate, sex }).where(eq(users.id, userId)).run();
+  const goalWeightKg = profile.goalWeightKg ?? null;
+  if (
+    goalWeightKg !== null &&
+    (!Number.isFinite(goalWeightKg) || goalWeightKg < 30 || goalWeightKg > 500)
+  ) {
+    throw new Error('goalWeightKg out of range');
+  }
+
+  const goalDate = profile.goalDate ?? null;
+  if (goalDate !== null && !isValidDate(goalDate)) {
+    throw new Error('goalDate must be a real day');
+  }
+
+  db.update(users)
+    .set({ heightCm, birthDate, sex, goalWeightKg, goalDate })
+    .where(eq(users.id, userId))
+    .run();
 }

@@ -26,6 +26,14 @@ export function isValidDate(s: string): boolean {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
 
+/** Whole days from `from` to `to`. Negative when `to` is the earlier one. */
+export function daysBetween(from: string, to: string): number | null {
+  if (!isValidDate(from) || !isValidDate(to)) return null;
+  const a = new Date(`${from}T00:00:00Z`).getTime();
+  const b = new Date(`${to}T00:00:00Z`).getTime();
+  return Math.round((b - a) / (24 * 60 * 60 * 1000));
+}
+
 /** `date` shifted by `days` calendar days (UTC arithmetic on the date-only value). */
 export function shiftDate(date: string, days: number): string {
   const t = new Date(`${date}T00:00:00Z`).getTime() + days * 24 * 60 * 60 * 1000;

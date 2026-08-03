@@ -9,11 +9,16 @@
  *   burned  = BMR + active
  *   deficit = burned - eaten
  *
- * A positive deficit means the day went the right way. This is deliberately
- * a readout and not a target: both inputs are estimates that err high, so
- * intake stays anchored to the program's fixed figure in `targets.ts` rather
- * than floating with them.
+ * A positive deficit means the day went the right way.
+ *
+ * The daily figure is a readout, never a dial: both inputs err high, so
+ * letting today's burn raise today's intake would feed that error straight
+ * back into how much gets eaten. Where a goal sets the intake target (see
+ * `goalIntake` below) it plans against an *average* of recent activity for the
+ * same reason, and never returns a figure under the program's floor.
  */
+
+import { daysBetween } from './dates';
 
 /** Rule of thumb for the energy in a kilo of body fat. */
 export const KCAL_PER_KG_FAT = 7700;
@@ -92,6 +97,8 @@ export type BodyProfile = {
   heightCm: number | null;
   birthDate: string | null;
   sex: string | null;
+  goalWeightKg: number | null;
+  goalDate: string | null;
 };
 
 /** Whole years old on a given day. Pure string arithmetic — no timezone to slip on. */
@@ -146,7 +153,9 @@ export type ResolvedBmr = { kcal: number; source: 'logged' | 'computed' };
 export function resolveBmr(
   date: string,
   metrics: { date: string; weightKg: number; bmrKcal: number | null }[],
-  profile: BodyProfile
+  // Only the body facts — the goal fields on BodyProfile are none of this
+  // function's business.
+  profile: Pick<BodyProfile, 'heightCm' | 'birthDate' | 'sex'>
 ): ResolvedBmr | null {
   const loggedToday = metrics.find((m) => m.date === date && m.bmrKcal !== null);
   if (loggedToday) return { kcal: loggedToday.bmrKcal as number, source: 'logged' };
@@ -214,6 +223,116 @@ export function weightChangeBetween(
     .sort((a, b) => a.date.localeCompare(b.date));
   if (inWindow.length < 2) return null;
   return inWindow[inWindow.length - 1].weightKg - inWindow[0].weightKg;
+}
+
+/* ======================== Working back from a goal ======================== */
+
+export type GoalPace = {
+  /** Days left, floored at 1 — the target date itself still counts. */
+  days: number;
+  /** Positive means there is weight still to lose. */
+  kgToGo: number;
+  totalKcal: number;
+  /** The daily deficit the goal demands. */
+  perDayKcal: number;
+  /** Already at or under the target weight. */
+  reached: boolean;
+  /** The date has passed. */
+  expired: boolean;
+};
+
+export function goalPace(input: {
+  currentKg: number;
+  goalKg: number;
+  today: string;
+  goalDate: string;
+}): GoalPace | null {
+  const { currentKg, goalKg } = input;
+  if (!Number.isFinite(currentKg) || !Number.isFinite(goalKg) || currentKg <= 0 || goalKg <= 0) {
+    return null;
+  }
+  const remaining = daysBetween(input.today, input.goalDate);
+  if (remaining === null) return null;
+
+  const kgToGo = currentKg - goalKg;
+  if (kgToGo <= 0) {
+    return {
+      days: Math.max(0, remaining),
+      kgToGo,
+      totalKcal: 0,
+      perDayKcal: 0,
+      reached: true,
+      expired: remaining < 0
+    };
+  }
+
+  const days = Math.max(1, remaining);
+  const totalKcal = kgToGo * KCAL_PER_KG_FAT;
+  return {
+    days,
+    kgToGo,
+    totalKcal,
+    perDayKcal: totalKcal / days,
+    reached: false,
+    expired: remaining < 0
+  };
+}
+
+/**
+ * A stable activity figure to plan intake against.
+ *
+ * Deliberately not today's running total: an intake target that climbs through
+ * the day as you move is the "eat back your exercise calories" trap, and it
+ * would import Apple's overestimate straight into how much you eat. An average
+ * of recent days moves slowly and can be planned around.
+ */
+export function typicalActive(
+  days: { date: string; activeKcal: number }[],
+  window = 14,
+  minDays = 3
+): number | null {
+  const recent = days.slice(-window);
+  if (recent.length < minDays) return null;
+  return recent.reduce((sum, d) => sum + d.activeKcal, 0) / recent.length;
+}
+
+export type GoalIntake = {
+  /** What the pace alone implies, before the floor is applied. */
+  rawKcal: number;
+  /** What to actually eat. Never below the floor. */
+  intakeKcal: number;
+  /** True when the pace wanted less food than the floor permits. */
+  floored: boolean;
+  /** The deficit the floored intake actually delivers. */
+  deficitAtIntake: number;
+};
+
+/**
+ * The intake a goal implies, clamped at the program's floor.
+ *
+ * The clamp is the point of this function, not a detail: a pace can demand an
+ * intake well under what the program allows, and the honest response is to
+ * hold the floor and say the goal is short — never to quietly hand back a
+ * number below it.
+ */
+export function goalIntake(input: {
+  bmrKcal: number | null;
+  typicalActiveKcal: number | null;
+  requiredDeficitKcal: number;
+  floorKcal: number;
+}): GoalIntake | null {
+  const { bmrKcal, requiredDeficitKcal, floorKcal } = input;
+  if (bmrKcal === null || !Number.isFinite(bmrKcal)) return null;
+
+  const burn = bmrKcal + (input.typicalActiveKcal ?? 0);
+  const rawKcal = burn - requiredDeficitKcal;
+  const intakeKcal = Math.max(floorKcal, rawKcal);
+  return {
+    rawKcal: Math.round(rawKcal),
+    intakeKcal: Math.round(intakeKcal),
+    floored: intakeKcal > rawKcal,
+    deficitAtIntake: Math.round(burn - intakeKcal)
+  };
 }
 
 export type DeficitDay = { date: string; deficitKcal: number | null };

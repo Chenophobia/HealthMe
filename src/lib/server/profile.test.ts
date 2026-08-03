@@ -16,7 +16,13 @@ function setup() {
 describe('body profile', () => {
   it('is empty for a fresh account', () => {
     const { db, user } = setup();
-    expect(getProfile(db, user.id)).toEqual({ heightCm: null, birthDate: null, sex: null });
+    expect(getProfile(db, user.id)).toEqual({
+      heightCm: null,
+      birthDate: null,
+      sex: null,
+      goalWeightKg: null,
+      goalDate: null
+    });
   });
 
   it('round-trips what was set', () => {
@@ -25,7 +31,9 @@ describe('body profile', () => {
     expect(getProfile(db, user.id)).toEqual({
       heightCm: 169,
       birthDate: '1997-02-28',
-      sex: 'male'
+      sex: 'male',
+      goalWeightKg: null,
+      goalDate: null
     });
   });
 
@@ -33,7 +41,13 @@ describe('body profile', () => {
     const { db, user } = setup();
     setProfile(db, user.id, { heightCm: 169, birthDate: '1997-02-28', sex: 'male' });
     setProfile(db, user.id, {});
-    expect(getProfile(db, user.id)).toEqual({ heightCm: null, birthDate: null, sex: null });
+    expect(getProfile(db, user.id)).toEqual({
+      heightCm: null,
+      birthDate: null,
+      sex: null,
+      goalWeightKg: null,
+      goalDate: null
+    });
   });
 
   it('rejects a height that is really a metre reading, or a typo', () => {

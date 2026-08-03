@@ -7,6 +7,9 @@ import {
   ageOn,
   mifflinStJeor,
   resolveBmr,
+  goalPace,
+  typicalActive,
+  goalIntake,
   KCAL_PER_KG_FAT
 } from './energy';
 
@@ -205,5 +208,124 @@ describe('resolveBmr', () => {
     const bare = { heightCm: null, birthDate: null, sex: null };
     const noBmr = [{ date: '2026-08-03', weightKg: 79.9, bmrKcal: null }];
     expect(resolveBmr('2026-08-03', noBmr, bare)).toBeNull();
+  });
+});
+
+describe('goalPace', () => {
+  const base = { currentKg: 79.9, goalKg: 76.0, today: '2026-08-03', goalDate: '2026-09-08' };
+
+  it('spreads the required loss across the days remaining', () => {
+    const p = goalPace(base)!;
+    expect(p.days).toBe(36);
+    expect(p.kgToGo).toBeCloseTo(3.9);
+    expect(Math.round(p.totalKcal)).toBe(30030);
+    expect(Math.round(p.perDayKcal)).toBe(834);
+    expect(p.reached).toBe(false);
+  });
+
+  it('reports a goal already met rather than a negative pace', () => {
+    const p = goalPace({ ...base, currentKg: 75.0 })!;
+    expect(p.reached).toBe(true);
+    expect(p.perDayKcal).toBe(0);
+  });
+
+  it('flags a date that has gone by', () => {
+    const p = goalPace({ ...base, today: '2026-09-20' })!;
+    expect(p.expired).toBe(true);
+  });
+
+  it('never divides by zero days on the target date itself', () => {
+    const p = goalPace({ ...base, today: '2026-09-08' })!;
+    expect(p.days).toBe(1);
+    expect(Number.isFinite(p.perDayKcal)).toBe(true);
+  });
+
+  it('is null for nonsense input', () => {
+    expect(goalPace({ ...base, goalDate: 'soon' })).toBeNull();
+    expect(goalPace({ ...base, currentKg: 0 })).toBeNull();
+  });
+});
+
+describe('typicalActive', () => {
+  const day = (date: string, activeKcal: number) => ({ date, activeKcal });
+
+  it('averages the recent window', () => {
+    expect(
+      typicalActive([day('2026-08-01', 300), day('2026-08-02', 400), day('2026-08-03', 500)])
+    ).toBe(400);
+  });
+
+  it('withholds a figure until there is enough to average', () => {
+    expect(typicalActive([day('2026-08-01', 300), day('2026-08-02', 400)])).toBeNull();
+    expect(typicalActive([])).toBeNull();
+  });
+
+  it('only looks at the window, not all history', () => {
+    const days = Array.from({ length: 30 }, (_, i) =>
+      day(`2026-07-${String(i + 1).padStart(2, '0')}`, i < 16 ? 1000 : 200)
+    );
+    expect(typicalActive(days, 14)).toBe(200);
+  });
+});
+
+describe('goalIntake', () => {
+  it('works intake back from burn and the required deficit', () => {
+    const r = goalIntake({
+      bmrKcal: 1715,
+      typicalActiveKcal: 900,
+      requiredDeficitKcal: 500,
+      floorKcal: 1600
+    })!;
+    expect(r.rawKcal).toBe(2115);
+    expect(r.intakeKcal).toBe(2115);
+    expect(r.floored).toBe(false);
+    expect(r.deficitAtIntake).toBe(500);
+  });
+
+  it('holds the floor when the pace demands less food than it allows', () => {
+    const r = goalIntake({
+      bmrKcal: 1715,
+      typicalActiveKcal: 400,
+      requiredDeficitKcal: 834,
+      floorKcal: 1600
+    })!;
+    expect(r.rawKcal).toBe(1281); // what the pace wanted
+    expect(r.intakeKcal).toBe(1600); // what it will actually say
+    expect(r.floored).toBe(true);
+    // And the honest consequence: the floor delivers less than the goal needs.
+    expect(r.deficitAtIntake).toBe(515);
+    expect(r.deficitAtIntake).toBeLessThan(834);
+  });
+
+  it('never returns an intake below the floor, however severe the pace', () => {
+    const r = goalIntake({
+      bmrKcal: 1500,
+      typicalActiveKcal: 0,
+      requiredDeficitKcal: 5000,
+      floorKcal: 1600
+    })!;
+    expect(r.intakeKcal).toBe(1600);
+    expect(r.floored).toBe(true);
+  });
+
+  it('treats unknown activity as none rather than guessing', () => {
+    const r = goalIntake({
+      bmrKcal: 1715,
+      typicalActiveKcal: null,
+      requiredDeficitKcal: 100,
+      floorKcal: 1600
+    })!;
+    expect(r.rawKcal).toBe(1615);
+  });
+
+  it('is null without a resting figure to build on', () => {
+    expect(
+      goalIntake({
+        bmrKcal: null,
+        typicalActiveKcal: 400,
+        requiredDeficitKcal: 500,
+        floorKcal: 1600
+      })
+    ).toBeNull();
   });
 });

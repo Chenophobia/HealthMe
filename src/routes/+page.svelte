@@ -3,7 +3,7 @@
   import type { SubmitFunction } from '@sveltejs/kit';
   import { rollingAverage } from '$lib/rolling';
   import { weekdayOf } from '$lib/dates';
-  import { KCAL_TARGET, PROTEIN_TARGET_G, PROTEIN_AIM_G } from '$lib/targets';
+  import { KCAL_TARGET, KCAL_FLOOR, PROTEIN_TARGET_G, PROTEIN_AIM_G } from '$lib/targets';
   import { energyBalance } from '$lib/energy';
   import { formatNumber } from '$lib/readout';
   import Meter from '$lib/components/Meter.svelte';
@@ -46,6 +46,13 @@
   const profileSet = $derived(
     data.profile.heightCm !== null && data.profile.birthDate !== null && data.profile.sex !== null
   );
+
+  /* The goal drives the calorie target when there is one; otherwise the
+     program's fixed anchor stands. */
+  const kcalTarget = $derived(data.intake?.intakeKcal ?? KCAL_TARGET);
+  const shortfall = $derived(
+    data.pace && data.intake ? Math.round(data.pace.perDayKcal - data.intake.deficitAtIntake) : 0
+  );
 </script>
 
 <svelte:head><title>Today — health-me</title></svelte:head>
@@ -58,7 +65,7 @@
 <!-- ============================= The readout ============================= -->
 <section class="card mt-4 p-4 sm:p-5" aria-label="Today's budget">
   <div class="grid gap-6 sm:grid-cols-2 sm:gap-8">
-    <Meter label="Calories" value={data.totals.kcal} target={KCAL_TARGET} unit="kcal" />
+    <Meter label="Calories" value={data.totals.kcal} target={kcalTarget} unit="kcal" />
     <div class="border-hairline border-t pt-6 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-8">
       <Meter
         label="Protein"
@@ -74,6 +81,69 @@
     Log a meal →
   </a>
 </section>
+
+<!-- ============================= Goal =============================
+
+     The intake target above is worked back from this. Where the pace demands
+     less food than the program's floor allows, the floor holds and the card
+     says how far short that leaves you — it never quietly hands back a number
+     under the floor. -->
+{#if data.pace}
+  <section class="card mt-4 overflow-hidden">
+    <div class="flex items-center justify-between gap-3 p-4 sm:p-5">
+      <span class="eyebrow text-ink-muted">Goal</span>
+      <button type="button" class="btn-quiet" onclick={() => (editProfile = true)}>Edit</button>
+    </div>
+    <div class="border-hairline border-t p-4 sm:p-5">
+      {#if data.pace.reached}
+        <p class="text-good font-semibold">
+          {data.profile.goalWeightKg} kg reached.
+        </p>
+      {:else if data.pace.expired}
+        <p class="text-ink-muted text-sm">
+          {data.profile.goalDate} has passed — {data.pace.kgToGo.toFixed(1)} kg still to go. Set a new
+          date.
+        </p>
+      {:else}
+        <StatRow
+          stats={[
+            { label: 'Target', value: `${data.profile.goalWeightKg} kg` },
+            { label: 'By', value: data.profile.goalDate ?? '—' },
+            { label: 'Days left', value: String(data.pace.days) }
+          ]}
+        />
+        <div class="border-hairline mt-4 border-t pt-4">
+          <StatRow
+            stats={[
+              { label: 'Needs', value: `${formatNumber(data.pace.perDayKcal)}/day` },
+              {
+                label: 'Eat',
+                value: data.intake ? `${formatNumber(data.intake.intakeKcal)} kcal` : '—',
+                muted: !data.intake
+              },
+              {
+                label: 'Gives',
+                value: data.intake ? `${formatNumber(data.intake.deficitAtIntake)}/day` : '—',
+                muted: !data.intake
+              }
+            ]}
+          />
+        </div>
+
+        {#if data.intake?.floored}
+          <p class="text-warn mt-4 text-sm">
+            Held at the {formatNumber(KCAL_FLOOR)} kcal floor — {formatNumber(shortfall)} kcal/day short
+            of the pace. That gap has to come from activity, or the date has to move.
+          </p>
+        {:else if !data.intake}
+          <p class="text-ink-muted mt-4 text-sm">
+            Needs a weigh-in and body profile before it can set a target.
+          </p>
+        {/if}
+      {/if}
+    </div>
+  </section>
+{/if}
 
 <!-- ============================= Energy balance ============================= -->
 <section class="card mt-4 overflow-hidden">
@@ -282,6 +352,20 @@
           <option value="male">Male</option>
           <option value="female">Female</option>
         </select>
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="eyebrow text-ink-muted">Goal kg</span>
+        <input
+          name="goalWeightKg"
+          type="number"
+          step="0.1"
+          value={data.profile.goalWeightKg ?? ''}
+          class="field"
+        />
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="eyebrow text-ink-muted">Goal by</span>
+        <input name="goalDate" type="date" value={data.profile.goalDate ?? ''} class="field" />
       </label>
       <div class="col-span-2 flex gap-3 sm:col-span-1">
         <button class="btn-primary flex-1">Save</button>

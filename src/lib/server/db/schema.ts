@@ -37,7 +37,11 @@ export const users = sqliteTable('users', {
   // it never goes stale.
   heightCm: real('height_cm'),
   birthDate: text('birth_date'), // YYYY-MM-DD
-  sex: text('sex') // 'male' | 'female' — the only two constants Mifflin-St Jeor defines
+  sex: text('sex'), // 'male' | 'female' — the only two constants Mifflin-St Jeor defines
+  // What the intake target is worked back from. Nullable: without a goal the
+  // app falls back to the program's fixed anchor in targets.ts.
+  goalWeightKg: real('goal_weight_kg'),
+  goalDate: text('goal_date') // YYYY-MM-DD
 });
 
 export const sessions = sqliteTable('sessions', {
