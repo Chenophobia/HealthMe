@@ -3,6 +3,8 @@
   import { rollingAverage } from '$lib/rolling';
   import { weekdayOf } from '$lib/dates';
   import { KCAL_TARGET, PROTEIN_TARGET_G, PROTEIN_AIM_G } from '$lib/targets';
+  import { energyBalance } from '$lib/energy';
+  import { formatNumber } from '$lib/readout';
   import Meter from '$lib/components/Meter.svelte';
   import TrendChart from '$lib/components/TrendChart.svelte';
   import type { PageData, ActionData } from './$types';
@@ -10,6 +12,14 @@
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
   const SESSION_LABELS: Record<string, string> = { push: 'Push', pull: 'Pull', legs: 'Legs' };
+
+  const balance = $derived(
+    energyBalance({
+      bmrKcal: data.bmrKcal,
+      activeKcal: data.activeKcal,
+      eatenKcal: data.totals.kcal
+    })
+  );
 
   const weightSeries = $derived(data.recent.map((m) => ({ date: m.date, value: m.weightKg })));
   const weightAverage = $derived(rollingAverage(weightSeries, 7));
@@ -45,6 +55,80 @@
   </a>
 </section>
 
+<!-- ============================= Energy balance =============================
+
+     A readout, not a target. Both inputs are estimates that err high — Apple's
+     active energy especially — so intake stays anchored to the fixed figure
+     above rather than floating with them. -->
+<section class="card mt-4 p-5 sm:p-6">
+  <p class="eyebrow text-ink-muted">Energy balance</p>
+
+  {#if balance.status === 'unknown'}
+    <p class="text-ink-muted mt-2.5 text-sm">
+      Add a BMR to a weigh-in below and the day's deficit appears here. Renpho reports it with
+      weight and body fat.
+    </p>
+  {:else if balance.status === 'pending'}
+    <p class="text-ink-muted mt-2.5 text-sm">
+      Nothing eaten yet. Burning {formatNumber(balance.burnedKcal ?? 0)} kcal today — the deficit shows
+      once there's food against it.
+    </p>
+  {:else}
+    <p class="mt-2.5 flex items-baseline gap-2">
+      <span
+        class="tabular font-mono text-4xl leading-none font-semibold tracking-tight sm:text-5xl {balance.status ===
+        'surplus'
+          ? 'text-over'
+          : 'text-ink'}">{formatNumber(Math.abs(balance.deficitKcal ?? 0))}</span
+      >
+      <span class="text-ink-muted font-mono text-sm">
+        kcal {balance.status === 'surplus' ? 'surplus' : 'deficit'}
+      </span>
+    </p>
+    <p class="text-ink-muted tabular mt-2.5 font-mono text-xs">
+      {formatNumber(balance.bmrKcal ?? 0)} BMR + {formatNumber(balance.activeKcal)} active =
+      {formatNumber(balance.burnedKcal ?? 0)} burned · {formatNumber(balance.eatenKcal)} eaten
+    </p>
+    {#if !balance.hasActive}
+      <p class="text-ink-muted mt-2 text-sm">
+        No active energy yet today — this is resting burn only, so the real figure is higher.
+      </p>
+    {/if}
+  {/if}
+
+  <form
+    method="POST"
+    action="?/activity"
+    use:enhance
+    class="border-hairline mt-5 flex items-end gap-3 border-t pt-4"
+  >
+    <input type="hidden" name="date" value={data.date} />
+    <label class="flex flex-1 flex-col gap-1.5">
+      <span class="eyebrow text-ink-muted">Active energy · kcal</span>
+      <input
+        name="activeKcal"
+        type="number"
+        min="0"
+        step="1"
+        required
+        value={data.activeKcal ?? ''}
+        class="field"
+      />
+    </label>
+    <button class="btn-primary">Save</button>
+  </form>
+  {#if form?.activityError}
+    <p class="text-over mt-3 text-sm">{form.activityError}</p>
+  {:else if form?.activityOk}
+    <p class="text-accent mt-3 text-sm">Active energy saved.</p>
+  {/if}
+  <p class="text-ink-muted mt-3 text-xs">
+    Apple Health → Activity → Active Energy. {data.activitySource === 'shortcut'
+      ? 'Last written by the Shortcut.'
+      : 'The Shortcut overwrites this when it next runs.'}
+  </p>
+</section>
+
 <!-- ============================= Scheduled session ============================= -->
 {#if data.scheduled}
   <a href="/workouts" class="card mt-4 flex items-center justify-between gap-3 p-4">
@@ -71,6 +155,9 @@
         {#if data.latest.bodyFatPct !== null}<span class="text-ink-muted"
             >· {data.latest.bodyFatPct}%</span
           >{/if}
+        {#if data.latest.bmrKcal !== null}<span class="text-ink-muted"
+            >· {formatNumber(data.latest.bmrKcal)} BMR</span
+          >{/if}
         <span class="text-ink-muted">· {data.latest.date}</span>
       </p>
     {:else}
@@ -82,7 +169,7 @@
     method="POST"
     action="?/weighin"
     use:enhance
-    class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
+    class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_1fr_1fr_auto] sm:items-end"
   >
     <label class="col-span-2 flex flex-col gap-1.5 sm:col-span-1">
       <span class="eyebrow text-ink-muted">Date</span>
@@ -96,6 +183,16 @@
       <span class="eyebrow text-ink-muted">Body fat %</span>
       <input name="bodyFatPct" type="number" step="0.1" placeholder="optional" class="field" />
     </label>
+    <label class="col-span-2 flex flex-col gap-1.5 sm:col-span-1">
+      <span class="eyebrow text-ink-muted">BMR kcal</span>
+      <input
+        name="bmrKcal"
+        type="number"
+        step="1"
+        placeholder={data.bmrKcal ? String(data.bmrKcal) : 'optional'}
+        class="field"
+      />
+    </label>
     <button class="btn-primary col-span-2 sm:col-span-1">Log weigh-in</button>
   </form>
 
@@ -104,7 +201,10 @@
   {:else if form?.ok}
     <p class="text-accent mt-3 text-sm">Saved for {form.date}.</p>
   {/if}
-  <p class="text-ink-muted mt-3 text-xs">Logging a day again replaces that day's entry.</p>
+  <p class="text-ink-muted mt-3 text-xs">
+    Logging a day again replaces that day's entry. A blank BMR keeps carrying the last one you
+    logged.
+  </p>
 </section>
 
 <!-- ============================= Weight trend ============================= -->

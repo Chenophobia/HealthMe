@@ -90,6 +90,20 @@ export function dayTotals(
   return row;
 }
 
+/** Calories logged per day, oldest first — the intake side of the deficit. */
+export function dailyKcalTotals(db: Db, userId: number): { date: string; kcal: number }[] {
+  return db
+    .select({
+      date: mealLogs.date,
+      kcal: sql<number>`coalesce(sum(${mealLogs.kcal}), 0)`
+    })
+    .from(mealLogs)
+    .where(eq(mealLogs.userId, userId))
+    .groupBy(mealLogs.date)
+    .orderBy(mealLogs.date)
+    .all();
+}
+
 export function deleteMealLog(db: Db, userId: number, id: number): void {
   db.delete(mealLogs)
     .where(and(eq(mealLogs.id, id), eq(mealLogs.userId, userId)))

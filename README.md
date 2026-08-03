@@ -3,8 +3,8 @@
 ## What this is
 
 A personal, single-user health tracker for a fat-loss program — logging
-meals and weigh-ins against a plan, looking up the day's workout, with a
-dashboard summarizing progress over time. The program itself (targets, recipes, training split)
+meals and weigh-ins against a plan, looking up the day's workout, tracking the
+day's energy balance, with a dashboard summarizing progress over time. The program itself (targets, recipes, training split)
 lives at [`docs/fat-loss-program.md`](docs/fat-loss-program.md); the app is
 just the day-to-day logging and progress tool built around it.
 
@@ -36,6 +36,53 @@ npm test             # run the test suite (vitest)
 npm run lint         # prettier --check + eslint (what CI runs)
 npm run check        # svelte-check (typechecking)
 ```
+
+## Apple Health activity
+
+Calories burned feeds the deficit readout on Today. HealthKit has no web API,
+so nothing here can pull it — the phone pushes it to `POST /api/activity`,
+authenticated with a bearer token rather than the session cookie (a Shortcut
+has no cookie jar, and a redirect to `/login` would be reported back to it as
+a success).
+
+**It is Apple's _Active_ Energy that goes in, not total.** Renpho's BMR
+already accounts for resting burn; posting Apple's total counts it twice and
+flatters the deficit by well over 1,000 kcal a day.
+
+Mint a token — printed once, only its SHA-256 digest is stored:
+
+```bash
+CREATE_API_TOKEN_USERNAME=someone CREATE_API_TOKEN_NAME=iphone-shortcut \
+  npm run create-api-token
+```
+
+Check the endpoint before wiring up the phone:
+
+```bash
+curl -X POST https://<host>/api/activity \
+  -H 'Authorization: Bearer <token>' \
+  -H 'Content-Type: application/json' \
+  -d '{"activeKcal": 542}'
+# {"ok":true,"date":"2026-08-03","activeKcal":542}
+```
+
+`date` is optional and defaults to the server's today; re-posting a day
+overwrites it, since the Shortcut sends a total that grows through the day.
+
+Then build the Shortcut on the phone (exact action names drift between iOS
+versions — this is the shape, not a transcript):
+
+1. **Find All Health Samples** — type Active Energy, filtered to today.
+2. **Calculate Statistics** — Sum, over the samples' values.
+3. **Get Contents of URL** — `https://<host>/api/activity`, method POST,
+   headers `Authorization: Bearer <token>` and `Content-Type: application/json`,
+   request body JSON with `activeKcal` set to the sum from step 2.
+
+Then Automation → Personal Automation → Time of Day to run it. Late evening
+captures a complete day; hourly keeps Today live at the cost of more runs.
+
+The field on Today writes the same row by hand, for the days the automation
+misses or gets wrong. Whichever wrote last wins.
 
 ## Home-screen icons
 

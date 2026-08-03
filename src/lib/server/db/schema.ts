@@ -1,4 +1,4 @@
-import { sqliteTable, integer, text, real, index } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, integer, text, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 // ---- Reference data (seeded from docs/fat-loss-program.md, not user-edited) ----
 
@@ -56,10 +56,58 @@ export const bodyMetrics = sqliteTable(
     date: text('date').notNull(), // YYYY-MM-DD, server-local
     weightKg: real('weight_kg').notNull(),
     bodyFatPct: real('body_fat_pct'), // nullable — scale sometimes only gives weight
+    // Renpho's BMR estimate, read off the same weigh-in. Nullable for the
+    // same reason as body fat, and because every entry logged before this
+    // column existed has none.
+    bmrKcal: integer('bmr_kcal'),
     loggedAt: text('logged_at').notNull()
   },
   (t) => [index('body_metrics_user_date_idx').on(t.userId, t.date)]
 );
+
+/*
+ * Active energy burned, one row per day.
+ *
+ * Deliberately not a column on body_metrics: that table is body composition
+ * measured at a single moment, and a re-weigh replaces the whole row — which
+ * would wipe a day's accumulated burn. This also arrives from a different
+ * writer (the Shortcuts automation) on its own schedule.
+ */
+export const activityLogs = sqliteTable(
+  'activity_logs',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
+    date: text('date').notNull(),
+    // Apple Health's *Active* Energy only. Resting burn is BMR's job; adding
+    // Apple's total here would count it twice.
+    activeKcal: integer('active_kcal').notNull(),
+    source: text('source').notNull(), // 'shortcut' | 'manual'
+    loggedAt: text('logged_at').notNull()
+  },
+  // Unique so the day can be upserted — the Shortcut re-posts a growing total
+  // through the day and must overwrite, not accumulate.
+  (t) => [uniqueIndex('activity_logs_user_date_idx').on(t.userId, t.date)]
+);
+
+/*
+ * Bearer tokens for the Apple Shortcut. Separate from sessions: these never
+ * expire, are not tied to a browser, and only carry the right to post
+ * activity. Stored as a SHA-256 digest — unlike a password these are already
+ * 256 bits of CSPRNG output, so they need a fast digest, not a slow KDF.
+ */
+export const apiTokens = sqliteTable('api_tokens', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id),
+  name: text('name').notNull(), // what it's for, e.g. 'iphone-shortcut'
+  tokenHash: text('token_hash').notNull().unique(),
+  createdAt: text('created_at').notNull(),
+  lastUsedAt: text('last_used_at')
+});
 
 export const mealLogs = sqliteTable(
   'meal_logs',

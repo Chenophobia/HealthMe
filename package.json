@@ -20,6 +20,7 @@
     "db:generate": "drizzle-kit generate",
     "icons": "tsx scripts/generate-icons.ts",
     "create-user": "tsx scripts/create-user.ts",
+    "create-api-token": "tsx scripts/create-api-token.ts",
     "set-password": "tsx scripts/set-password.ts",
     "reseed": "tsx scripts/reseed.ts"
   },

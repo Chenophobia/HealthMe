@@ -1,6 +1,6 @@
 <script lang="ts">
   import { rollingAverage } from '$lib/rolling';
-  import { formatSigned } from '$lib/readout';
+  import { formatNumber, formatSigned } from '$lib/readout';
   import TrendChart from '$lib/components/TrendChart.svelte';
   import type { PageData } from './$types';
 
@@ -51,6 +51,58 @@
     <p class="text-ink-muted text-sm">Days in a row with a meal logged.</p>
   </div>
 </section>
+
+<!-- ============================= Estimated deficit =============================
+
+     Shown against the scale on purpose. Both burn inputs are estimates that
+     err high, and the only way to know by how much is to watch the predicted
+     loss against the measured one. -->
+{#if data.deficit}
+  <section class="card mt-4 p-4 sm:p-5">
+    <h2 class="eyebrow text-ink-muted">Estimated deficit</h2>
+    <p class="mt-2.5 flex items-baseline gap-2">
+      <span
+        class="tabular font-mono text-3xl leading-none font-semibold tracking-tight {data.deficit
+          .averageKcal < 0
+          ? 'text-over'
+          : 'text-ink'}">{formatNumber(Math.abs(data.deficit.averageKcal))}</span
+      >
+      <span class="text-ink-muted font-mono text-sm">
+        kcal/day {data.deficit.averageKcal < 0 ? 'surplus' : 'deficit'} over {data.deficit.days}
+        {data.deficit.days === 1 ? 'day' : 'days'}
+      </span>
+    </p>
+
+    {#if data.actualChangeKg !== null && data.deficit.days >= 14}
+      <dl class="border-hairline mt-4 grid grid-cols-2 gap-4 border-t pt-4">
+        <div class="flex flex-col gap-1.5">
+          <dt class="eyebrow text-ink-muted">Predicted</dt>
+          <dd class="tabular font-mono text-lg font-semibold">
+            {formatSigned(data.deficit.projectedChangeKg)}<span
+              class="text-ink-muted ml-1 text-sm font-normal">kg</span
+            >
+          </dd>
+        </div>
+        <div class="border-hairline flex flex-col gap-1.5 border-l pl-4">
+          <dt class="eyebrow text-ink-muted">Scale says</dt>
+          <dd class="tabular font-mono text-lg font-semibold">
+            {formatSigned(data.actualChangeKg)}<span class="text-ink-muted ml-1 text-sm font-normal"
+              >kg</span
+            >
+          </dd>
+        </div>
+      </dl>
+      <p class="text-ink-muted mt-3 text-sm">
+        Both burn figures read high — Apple's active energy especially. Where the predicted loss
+        outruns the scale, that gap is the size of the error, and the scale is the one to believe.
+      </p>
+    {:else}
+      <p class="text-ink-muted mt-3 text-sm">
+        Needs 14 days with both a BMR and food logged before it's worth checking against the scale.
+      </p>
+    {/if}
+  </section>
+{/if}
 
 <!-- ============================= Weight ============================= -->
 <section class="card mt-4 p-4 sm:p-5">

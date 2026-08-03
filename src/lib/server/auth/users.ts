@@ -13,6 +13,20 @@ export function usernameTaken(db: Db, username: string): boolean {
   return !!taken;
 }
 
+/** Looks a user up by name, for operator scripts that act on an existing account. */
+export function findUserByUsername(
+  db: Db,
+  username: string
+): { id: number; username: string } | null {
+  const [user] = db
+    .select({ id: users.id, username: users.username })
+    .from(users)
+    .where(eq(users.username, username))
+    .limit(1)
+    .all();
+  return user ?? null;
+}
+
 /**
  * Inserts a new user, tolerating a `username` uniqueness race.
  *
