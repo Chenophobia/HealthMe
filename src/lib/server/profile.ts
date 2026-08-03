@@ -27,50 +27,75 @@ export function getProfile(db: Db, userId: number): BodyProfile {
   return row ?? { heightCm: null, birthDate: null, sex: null, goalWeightKg: null, goalDate: null };
 }
 
+export type ProfilePatch = {
+  heightCm?: number | null;
+  birthDate?: string | null;
+  sex?: string | null;
+  goalWeightKg?: number | null;
+  goalDate?: string | null;
+};
+
+/**
+ * Partial update: only the keys actually present are written.
+ *
+ * This matters now that the body facts and the goal are edited by two separate
+ * forms — a whole-row write would have each form silently wipe the other's
+ * fields on every save. Passing an explicit `null` still clears a field;
+ * leaving the key out leaves it alone.
+ */
 export function setProfile(
   db: Db,
   userId: number,
-  profile: {
-    heightCm?: number | null;
-    birthDate?: string | null;
-    sex?: string | null;
-    goalWeightKg?: number | null;
-    goalDate?: string | null;
-  },
+  profile: ProfilePatch,
   today: string = todayLocal()
 ): void {
-  const heightCm = profile.heightCm ?? null;
-  if (heightCm !== null && (!Number.isFinite(heightCm) || heightCm < 50 || heightCm > 260)) {
-    throw new Error('heightCm out of range');
+  const update: ProfilePatch = {};
+
+  if ('heightCm' in profile) {
+    const heightCm = profile.heightCm ?? null;
+    if (heightCm !== null && (!Number.isFinite(heightCm) || heightCm < 50 || heightCm > 260)) {
+      throw new Error('heightCm out of range');
+    }
+    update.heightCm = heightCm;
   }
 
-  const birthDate = profile.birthDate ?? null;
-  if (birthDate !== null) {
-    if (!isValidDate(birthDate)) throw new Error('birthDate must be a real day');
-    const age = ageOn(birthDate, today);
-    if (age === null || birthDate > today) throw new Error('birthDate out of range');
+  if ('birthDate' in profile) {
+    const birthDate = profile.birthDate ?? null;
+    if (birthDate !== null) {
+      if (!isValidDate(birthDate)) throw new Error('birthDate must be a real day');
+      const age = ageOn(birthDate, today);
+      if (age === null || birthDate > today) throw new Error('birthDate out of range');
+    }
+    update.birthDate = birthDate;
   }
 
-  const sex = profile.sex ?? null;
-  if (sex !== null && sex !== 'male' && sex !== 'female') {
-    throw new Error('sex must be male or female');
+  if ('sex' in profile) {
+    const sex = profile.sex ?? null;
+    if (sex !== null && sex !== 'male' && sex !== 'female') {
+      throw new Error('sex must be male or female');
+    }
+    update.sex = sex;
   }
 
-  const goalWeightKg = profile.goalWeightKg ?? null;
-  if (
-    goalWeightKg !== null &&
-    (!Number.isFinite(goalWeightKg) || goalWeightKg < 30 || goalWeightKg > 500)
-  ) {
-    throw new Error('goalWeightKg out of range');
+  if ('goalWeightKg' in profile) {
+    const goalWeightKg = profile.goalWeightKg ?? null;
+    if (
+      goalWeightKg !== null &&
+      (!Number.isFinite(goalWeightKg) || goalWeightKg < 30 || goalWeightKg > 500)
+    ) {
+      throw new Error('goalWeightKg out of range');
+    }
+    update.goalWeightKg = goalWeightKg;
   }
 
-  const goalDate = profile.goalDate ?? null;
-  if (goalDate !== null && !isValidDate(goalDate)) {
-    throw new Error('goalDate must be a real day');
+  if ('goalDate' in profile) {
+    const goalDate = profile.goalDate ?? null;
+    if (goalDate !== null && !isValidDate(goalDate)) {
+      throw new Error('goalDate must be a real day');
+    }
+    update.goalDate = goalDate;
   }
 
-  db.update(users)
-    .set({ heightCm, birthDate, sex, goalWeightKg, goalDate })
-    .where(eq(users.id, userId))
-    .run();
+  if (Object.keys(update).length === 0) return;
+  db.update(users).set(update).where(eq(users.id, userId)).run();
 }

@@ -113,22 +113,36 @@ export const actions: Actions = {
     const heightRaw = String(form.get('heightCm') ?? '').trim();
     const birthRaw = String(form.get('birthDate') ?? '').trim();
     const sexRaw = String(form.get('sex') ?? '').trim();
+    try {
+      // Body facts only — the goal is a separate form, and setProfile writes
+      // just the keys it is handed.
+      setProfile(db, locals.user!.id, {
+        heightCm: heightRaw === '' ? null : Number(heightRaw),
+        birthDate: birthRaw === '' ? null : birthRaw,
+        sex: sexRaw === '' ? null : sexRaw
+      });
+    } catch {
+      return fail(400, {
+        profileError: 'Height must be 50–260 cm, and the birth date a real day in the past.'
+      });
+    }
+    return { profileOk: true };
+  },
+
+  goal: async ({ request, locals }) => {
+    const form = await request.formData();
     const goalKgRaw = String(form.get('goalWeightKg') ?? '').trim();
     const goalDateRaw = String(form.get('goalDate') ?? '').trim();
     try {
       setProfile(db, locals.user!.id, {
-        heightCm: heightRaw === '' ? null : Number(heightRaw),
-        birthDate: birthRaw === '' ? null : birthRaw,
-        sex: sexRaw === '' ? null : sexRaw,
         goalWeightKg: goalKgRaw === '' ? null : Number(goalKgRaw),
         goalDate: goalDateRaw === '' ? null : goalDateRaw
       });
     } catch {
       return fail(400, {
-        profileError:
-          'Height must be 50–260 cm, birth date a real day in the past, and goal weight 30–500 kg.'
+        goalError: 'Goal weight must be 30–500 kg, and the date a real day.'
       });
     }
-    return { profileOk: true };
+    return { goalOk: true };
   }
 };

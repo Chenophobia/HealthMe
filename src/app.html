@@ -4,7 +4,14 @@
     <meta charset="utf-8" />
     <!-- viewport-fit=cover lets the app draw into the notch/home-indicator
          areas; app.css pads the fixed chrome back out with env(safe-area-*). -->
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- interactive-widget: ask the browser to shrink the layout when the
+         keyboard opens, so a focused field can't end up underneath it. Not
+         honoured everywhere, so +layout.svelte also drives the shell height
+         off visualViewport. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />

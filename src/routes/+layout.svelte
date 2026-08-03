@@ -36,6 +36,53 @@
       window.visualViewport?.removeEventListener('resize', reset);
     };
   });
+
+  /*
+   * Keep the shell inside the space the keyboard leaves.
+   *
+   * The shell is one viewport tall and only its middle scrolls, which means a
+   * field near the bottom sits *behind* the on-screen keyboard with no way to
+   * scroll it up — the scroller thinks it's already showing everything.
+   * visualViewport reports the space actually left over, so drive the height
+   * from that, then lift the focused field into the middle of it once the
+   * keyboard has finished animating.
+   */
+  $effect(() => {
+    const vv = window.visualViewport;
+
+    const setHeight = () => {
+      document.documentElement.style.setProperty(
+        '--app-height',
+        `${Math.round(vv?.height ?? window.innerHeight)}px`
+      );
+    };
+
+    let pending: ReturnType<typeof setTimeout>;
+    const revealFocused = (event: FocusEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || !target.matches('input, select, textarea')) return;
+      // The keyboard animates in over ~250ms; scrolling before it settles
+      // aims at the old geometry and lands in the wrong place.
+      clearTimeout(pending);
+      pending = setTimeout(
+        () => target.scrollIntoView({ block: 'center', behavior: 'smooth' }),
+        300
+      );
+    };
+
+    setHeight();
+    vv?.addEventListener('resize', setHeight);
+    vv?.addEventListener('scroll', setHeight);
+    window.addEventListener('resize', setHeight);
+    window.addEventListener('focusin', revealFocused);
+    return () => {
+      clearTimeout(pending);
+      vv?.removeEventListener('resize', setHeight);
+      vv?.removeEventListener('scroll', setHeight);
+      window.removeEventListener('resize', setHeight);
+      window.removeEventListener('focusin', revealFocused);
+    };
+  });
 </script>
 
 <!--
@@ -48,7 +95,9 @@
   the scroll moved inside, the header and tab bar are structurally fixed
   rather than sticky, and there is no document left to bounce.
 -->
-<div class="flex h-dvh flex-col overflow-hidden">
+<!-- Height comes from visualViewport (see above) so the keyboard can't cover a
+     field; 100dvh is the pre-hydration and no-visualViewport fallback. -->
+<div class="flex flex-col overflow-hidden" style="height: var(--app-height, 100dvh)">
   {#if data.user}
     <header class="border-hairline bg-surface pad-top-safe z-20 shrink-0 border-b">
       <div class="mx-auto flex w-full max-w-3xl items-center gap-4 px-4 pb-2 sm:px-6">

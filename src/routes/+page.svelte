@@ -21,6 +21,7 @@
   let showActivity = $state(false);
   let showWeighIn = $state(false);
   let editProfile = $state(false);
+  let editGoal = $state(false);
 
   /* Collapse on success. The panel's own numbers updating is the confirmation,
      so nothing has to say "saved". */
@@ -88,17 +89,54 @@
      less food than the program's floor allows, the floor holds and the card
      says how far short that leaves you — it never quietly hands back a number
      under the floor. -->
-{#if data.pace}
-  <section class="card mt-4 overflow-hidden">
-    <div class="flex items-center justify-between gap-3 p-4 sm:p-5">
-      <span class="eyebrow text-ink-muted">Goal</span>
-      <button type="button" class="btn-quiet" onclick={() => (editProfile = true)}>Edit</button>
-    </div>
+<section class="card mt-4 overflow-hidden">
+  <div class="flex items-center justify-between gap-3 p-4 sm:p-5">
+    <span class="eyebrow text-ink-muted">Goal</span>
+    {#if !editGoal}
+      <button type="button" class="btn-quiet" onclick={() => (editGoal = true)}>
+        {data.pace ? 'Edit' : 'Set'}
+      </button>
+    {/if}
+  </div>
+
+  {#if editGoal}
+    <form
+      method="POST"
+      action="?/goal"
+      use:enhance={closeOnSuccess(() => (editGoal = false))}
+      class="border-hairline grid grid-cols-2 gap-3 border-t p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end sm:p-5"
+    >
+      <label class="flex flex-col gap-1.5">
+        <span class="eyebrow text-ink-muted">Target kg</span>
+        <!-- svelte-ignore a11y_autofocus -->
+        <input
+          name="goalWeightKg"
+          type="number"
+          step="0.1"
+          autofocus
+          value={data.profile.goalWeightKg ?? ''}
+          class="field"
+        />
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="eyebrow text-ink-muted">By</span>
+        <input name="goalDate" type="date" value={data.profile.goalDate ?? ''} class="field" />
+      </label>
+      <div class="col-span-2 flex gap-3 sm:col-span-1">
+        <button class="btn-primary flex-1">Save</button>
+        <button type="button" class="btn-quiet" onclick={() => (editGoal = false)}>Cancel</button>
+      </div>
+      {#if form?.goalError}
+        <p class="text-over col-span-2 text-sm sm:col-span-3">{form.goalError}</p>
+      {/if}
+      <p class="text-ink-muted col-span-2 text-xs sm:col-span-3">
+        Clear both fields to drop the goal and go back to the {formatNumber(KCAL_TARGET)} kcal anchor.
+      </p>
+    </form>
+  {:else if data.pace}
     <div class="border-hairline border-t p-4 sm:p-5">
       {#if data.pace.reached}
-        <p class="text-good font-semibold">
-          {data.profile.goalWeightKg} kg reached.
-        </p>
+        <p class="text-good font-semibold">{data.profile.goalWeightKg} kg reached.</p>
       {:else if data.pace.expired}
         <p class="text-ink-muted text-sm">
           {data.profile.goalDate} has passed — {data.pace.kgToGo.toFixed(1)} kg still to go. Set a new
@@ -142,8 +180,12 @@
         {/if}
       {/if}
     </div>
-  </section>
-{/if}
+  {:else}
+    <p class="border-hairline text-ink-muted border-t p-4 text-sm sm:p-5">
+      None set — calories follow the program's {formatNumber(KCAL_TARGET)} kcal anchor.
+    </p>
+  {/if}
+</section>
 
 <!-- ============================= Energy balance ============================= -->
 <section class="card mt-4 overflow-hidden">
@@ -352,20 +394,6 @@
           <option value="male">Male</option>
           <option value="female">Female</option>
         </select>
-      </label>
-      <label class="flex flex-col gap-1.5">
-        <span class="eyebrow text-ink-muted">Goal kg</span>
-        <input
-          name="goalWeightKg"
-          type="number"
-          step="0.1"
-          value={data.profile.goalWeightKg ?? ''}
-          class="field"
-        />
-      </label>
-      <label class="flex flex-col gap-1.5">
-        <span class="eyebrow text-ink-muted">Goal by</span>
-        <input name="goalDate" type="date" value={data.profile.goalDate ?? ''} class="field" />
       </label>
       <div class="col-span-2 flex gap-3 sm:col-span-1">
         <button class="btn-primary flex-1">Save</button>

@@ -37,10 +37,10 @@ describe('body profile', () => {
     });
   });
 
-  it('can be cleared back to empty', () => {
+  it('clears a field when handed an explicit null', () => {
     const { db, user } = setup();
     setProfile(db, user.id, { heightCm: 169, birthDate: '1997-02-28', sex: 'male' });
-    setProfile(db, user.id, {});
+    setProfile(db, user.id, { heightCm: null, birthDate: null, sex: null });
     expect(getProfile(db, user.id)).toEqual({
       heightCm: null,
       birthDate: null,
@@ -48,6 +48,42 @@ describe('body profile', () => {
       goalWeightKg: null,
       goalDate: null
     });
+  });
+
+  /* The body facts and the goal are edited by two separate forms, so a write
+     from one must not touch the other's columns. */
+  it('leaves keys it was not given alone', () => {
+    const { db, user } = setup();
+    setProfile(db, user.id, { heightCm: 169, birthDate: '1997-02-28', sex: 'male' });
+    setProfile(db, user.id, { goalWeightKg: 76, goalDate: '2026-09-08' });
+    expect(getProfile(db, user.id)).toEqual({
+      heightCm: 169,
+      birthDate: '1997-02-28',
+      sex: 'male',
+      goalWeightKg: 76,
+      goalDate: '2026-09-08'
+    });
+
+    // And the reverse: saving the body facts must not wipe the goal.
+    setProfile(db, user.id, { heightCm: 170, birthDate: '1997-02-28', sex: 'male' });
+    expect(getProfile(db, user.id)).toMatchObject({
+      heightCm: 170,
+      goalWeightKg: 76,
+      goalDate: '2026-09-08'
+    });
+  });
+
+  it('does nothing at all when handed an empty patch', () => {
+    const { db, user } = setup();
+    setProfile(db, user.id, { heightCm: 169 });
+    setProfile(db, user.id, {});
+    expect(getProfile(db, user.id).heightCm).toBe(169);
+  });
+
+  it('rejects a goal weight that is out of range', () => {
+    const { db, user } = setup();
+    expect(() => setProfile(db, user.id, { goalWeightKg: 5 })).toThrow();
+    expect(() => setProfile(db, user.id, { goalDate: 'september' })).toThrow();
   });
 
   it('rejects a height that is really a metre reading, or a typo', () => {
