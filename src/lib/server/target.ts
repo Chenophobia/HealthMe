@@ -103,15 +103,20 @@ export function dailyTarget(db: Db, userId: number, today: string): DailyTarget 
       : null;
 
   /*
-   * Only the days after the last weigh-in and before today: the scale has
-   * already priced in everything up to the weigh-in, and today isn't over.
+   * The days the scale hasn't priced in yet, ending before today because
+   * today isn't over.
+   *
+   * The weigh-in day itself is *included*: you weigh in the morning, so that
+   * reading is the outcome of the days before it and says nothing about what
+   * you then ate. Excluding it would drop the most recent full day — the one
+   * you're most likely asking about — from the carry entirely.
    */
   const carry =
     pace && !pace.reached && !pace.expired
       ? carriedShortfall(
           pace.perDayKcal,
           deficitSeries(db, userId).filter(
-            (d) => d.date < today && (latest === null || d.date > latest.date)
+            (d) => d.date < today && (latest === null || d.date >= latest.date)
           )
         )
       : null;
