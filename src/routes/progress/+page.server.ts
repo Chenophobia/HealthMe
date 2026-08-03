@@ -3,8 +3,9 @@ import { listMetrics } from '$lib/server/metrics';
 import { listActiveEnergy } from '$lib/server/activity';
 import { dailyKcalTotals } from '$lib/server/meals';
 import { mealStreak } from '$lib/server/streaks';
+import { getProfile } from '$lib/server/profile';
 import { todayLocal } from '$lib/dates';
-import { bmrOnOrBefore, deficitSummary, energyBalance, weightChangeBetween } from '$lib/energy';
+import { resolveBmr, deficitSummary, energyBalance, weightChangeBetween } from '$lib/energy';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -13,6 +14,7 @@ export const load: PageServerLoad = async ({ locals }) => {
   const metrics = listMetrics(db, userId);
 
   const activeByDate = new Map(listActiveEnergy(db, userId).map((a) => [a.date, a.activeKcal]));
+  const profile = getProfile(db, userId);
 
   /*
    * Only days that actually have food logged count. A day with no meals isn't
@@ -24,7 +26,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     .map((d) => ({
       date: d.date,
       deficitKcal: energyBalance({
-        bmrKcal: bmrOnOrBefore(metrics, d.date),
+        bmrKcal: resolveBmr(d.date, metrics, profile)?.kcal ?? null,
         activeKcal: activeByDate.get(d.date) ?? null,
         eatenKcal: d.kcal
       }).deficitKcal

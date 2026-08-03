@@ -65,8 +65,8 @@
 
   {#if balance.status === 'unknown'}
     <p class="text-ink-muted mt-2.5 text-sm">
-      Add a BMR to a weigh-in below and the day's deficit appears here. Renpho reports it with
-      weight and body fat.
+      Fill in the body profile below and the deficit appears here — resting burn is estimated from
+      each weigh-in. Logging a BMR with a weigh-in works too.
     </p>
   {:else if balance.status === 'pending'}
     <p class="text-ink-muted mt-2.5 text-sm">
@@ -88,6 +88,11 @@
     <p class="text-ink-muted tabular mt-2.5 font-mono text-xs">
       {formatNumber(balance.bmrKcal ?? 0)} BMR + {formatNumber(balance.activeKcal)} active =
       {formatNumber(balance.burnedKcal ?? 0)} burned · {formatNumber(balance.eatenKcal)} eaten
+    </p>
+    <p class="text-ink-muted mt-1.5 text-xs">
+      {data.bmrSource === 'computed'
+        ? 'BMR estimated from your weight, height and age.'
+        : 'BMR from the weigh-in you logged.'}
     </p>
     {#if !balance.hasActive}
       <p class="text-ink-muted mt-2 text-sm">
@@ -205,6 +210,61 @@
     Logging a day again replaces that day's entry. A blank BMR keeps carrying the last one you
     logged.
   </p>
+</section>
+
+<!-- ============================= Body profile =============================
+
+     Set once. Turns each weigh-in into a resting-burn estimate, so BMR tracks
+     weight instead of waiting on the scale to report one. -->
+<section class="mt-4">
+  <details class="card p-4">
+    <summary class="eyebrow text-ink-muted flex min-h-11 cursor-pointer items-center">
+      Body profile
+    </summary>
+    <p class="text-ink-muted mt-1 text-sm">
+      Used to estimate resting burn from your weight (Mifflin–St Jeor). Set it once — it keeps up on
+      its own as your weight changes.
+    </p>
+    <form
+      method="POST"
+      action="?/profile"
+      use:enhance
+      class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
+    >
+      <label class="flex flex-col gap-1.5">
+        <span class="eyebrow text-ink-muted">Height cm</span>
+        <input
+          name="heightCm"
+          type="number"
+          step="0.1"
+          value={data.profile.heightCm ?? ''}
+          class="field"
+        />
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="eyebrow text-ink-muted">Born</span>
+        <input name="birthDate" type="date" value={data.profile.birthDate ?? ''} class="field" />
+      </label>
+      <label class="col-span-2 flex flex-col gap-1.5 sm:col-span-1">
+        <span class="eyebrow text-ink-muted">Sex</span>
+        <select name="sex" value={data.profile.sex ?? ''} class="field">
+          <option value="">Not set</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </label>
+      <button class="btn-primary col-span-2 sm:col-span-1">Save profile</button>
+    </form>
+    {#if form?.profileError}
+      <p class="text-over mt-3 text-sm">{form.profileError}</p>
+    {:else if form?.profileOk}
+      <p class="text-accent mt-3 text-sm">Profile saved.</p>
+    {/if}
+    <p class="text-ink-muted mt-3 text-xs">
+      The formula only defines coefficients for two sexes. A BMR typed into a weigh-in overrides the
+      estimate for that day.
+    </p>
+  </details>
 </section>
 
 <!-- ============================= Weight trend ============================= -->

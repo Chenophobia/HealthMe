@@ -83,6 +83,104 @@ export function energyBalance(input: EnergyInputs): EnergyBalance {
   };
 }
 
+/* ========================= Estimating resting burn ========================= */
+
+/** The only two coefficients Mifflin–St Jeor defines. */
+export type Sex = 'male' | 'female';
+
+export type BodyProfile = {
+  heightCm: number | null;
+  birthDate: string | null;
+  sex: string | null;
+};
+
+/** Whole years old on a given day. Pure string arithmetic — no timezone to slip on. */
+export function ageOn(birthDate: string, onDate: string): number | null {
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/;
+  const born = iso.exec(birthDate);
+  const on = iso.exec(onDate);
+  if (!born || !on) return null;
+
+  const [, by, bm, bd] = born.map(Number);
+  const [, oy, om, od] = on.map(Number);
+  let age = oy - by;
+  if (om < bm || (om === bm && od < bd)) age--;
+  return age >= 0 && age < 130 ? age : null;
+}
+
+/**
+ * Mifflin–St Jeor, the standard resting-burn estimate.
+ *
+ * Preferred over the scale's own figure because that one is derived from a
+ * bioimpedance body-fat reading, which moves with how hydrated you are — the
+ * same noise the weight dots already have, fed into a number that should be
+ * near-constant. This moves only when weight does.
+ */
+export function mifflinStJeor(input: {
+  weightKg: number;
+  heightCm: number;
+  ageYears: number;
+  sex: Sex;
+}): number | null {
+  const { weightKg, heightCm, ageYears, sex } = input;
+  if (!Number.isFinite(weightKg) || weightKg < 20 || weightKg > 500) return null;
+  if (!Number.isFinite(heightCm) || heightCm < 50 || heightCm > 260) return null;
+  if (!Number.isFinite(ageYears) || ageYears < 0 || ageYears > 130) return null;
+  if (sex !== 'male' && sex !== 'female') return null;
+
+  const offset = sex === 'male' ? 5 : -161;
+  return Math.round(10 * weightKg + 6.25 * heightCm - 5 * ageYears + offset);
+}
+
+export type ResolvedBmr = { kcal: number; source: 'logged' | 'computed' };
+
+/**
+ * The BMR to use for a day, and where it came from.
+ *
+ * A figure logged on the day itself wins — that's an explicit override. Failing
+ * that it's computed from the most recent weight, which is why a stale logged
+ * reading is *not* carried forward ahead of it: a three-week-old bioimpedance
+ * number is worse evidence than today's weight through the formula. The
+ * carry-forward only survives as a fallback for an unfilled profile.
+ */
+export function resolveBmr(
+  date: string,
+  metrics: { date: string; weightKg: number; bmrKcal: number | null }[],
+  profile: BodyProfile
+): ResolvedBmr | null {
+  const loggedToday = metrics.find((m) => m.date === date && m.bmrKcal !== null);
+  if (loggedToday) return { kcal: loggedToday.bmrKcal as number, source: 'logged' };
+
+  const ageYears = profile.birthDate ? ageOn(profile.birthDate, date) : null;
+  if (profile.heightCm !== null && ageYears !== null && profile.sex) {
+    const weight = latestWeightOnOrBefore(metrics, date);
+    if (weight !== null) {
+      const computed = mifflinStJeor({
+        weightKg: weight,
+        heightCm: profile.heightCm,
+        ageYears,
+        sex: profile.sex as Sex
+      });
+      if (computed !== null) return { kcal: computed, source: 'computed' };
+    }
+  }
+
+  const carried = bmrOnOrBefore(metrics, date);
+  return carried === null ? null : { kcal: carried, source: 'logged' };
+}
+
+function latestWeightOnOrBefore(
+  metrics: { date: string; weightKg: number }[],
+  date: string
+): number | null {
+  let best: { date: string; weightKg: number } | null = null;
+  for (const m of metrics) {
+    if (m.date > date) continue;
+    if (!best || m.date > best.date) best = m;
+  }
+  return best?.weightKg ?? null;
+}
+
 /**
  * The BMR to use for a given day: the most recent reading on or before it.
  *

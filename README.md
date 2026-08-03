@@ -45,9 +45,9 @@ authenticated with a bearer token rather than the session cookie (a Shortcut
 has no cookie jar, and a redirect to `/login` would be reported back to it as
 a success).
 
-**It is Apple's _Active_ Energy that goes in, not total.** Renpho's BMR
-already accounts for resting burn; posting Apple's total counts it twice and
-flatters the deficit by well over 1,000 kcal a day.
+**It is Apple's _Active_ Energy that goes in, not total.** Resting burn is
+BMR's job (see below); posting Apple's total counts it twice and flatters the
+deficit by well over 1,000 kcal a day.
 
 Mint a token — printed once, only its SHA-256 digest is stored:
 
@@ -83,6 +83,19 @@ captures a complete day; hourly keeps Today live at the cost of more runs.
 
 The field on Today writes the same row by hand, for the days the automation
 misses or gets wrong. Whichever wrote last wins.
+
+## Resting burn
+
+The other half of the deficit. Set height, birth date and sex once under
+**Body profile** on Today, and resting burn is estimated from each weigh-in
+with Mifflin–St Jeor — so it tracks weight down instead of waiting on a
+reading, and falls ~10 kcal per kilo lost.
+
+A BMR typed into a weigh-in overrides the estimate _for that day only_. It is
+deliberately not carried forward ahead of the formula: the scale's figure comes
+from a bioimpedance body-fat reading, which moves with hydration, so a
+three-week-old one is worse evidence than today's weight through the formula.
+Carry-forward survives only as a fallback for an unfilled profile.
 
 ## Home-screen icons
 

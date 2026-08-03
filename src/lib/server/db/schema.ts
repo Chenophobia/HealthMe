@@ -31,7 +31,13 @@ export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   username: text('username').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
-  createdAt: text('created_at').notNull()
+  createdAt: text('created_at').notNull(),
+  // Standing facts the BMR estimate needs. Nullable: the app works without
+  // them, it just can't compute a resting burn. Birth date rather than age so
+  // it never goes stale.
+  heightCm: real('height_cm'),
+  birthDate: text('birth_date'), // YYYY-MM-DD
+  sex: text('sex') // 'male' | 'female' — the only two constants Mifflin-St Jeor defines
 });
 
 export const sessions = sqliteTable('sessions', {

@@ -4,14 +4,18 @@ import { dayTotals } from '$lib/server/meals';
 import { addBodyMetric, listMetrics } from '$lib/server/metrics';
 import { activeEnergyForDate, setActiveEnergy } from '$lib/server/activity';
 import { mealStreak } from '$lib/server/streaks';
+import { getProfile, setProfile } from '$lib/server/profile';
 import { todayLocal, isValidDate, scheduledSessionFor } from '$lib/dates';
-import { bmrOnOrBefore } from '$lib/energy';
+import { resolveBmr } from '$lib/energy';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
   const date = todayLocal();
   const metrics = listMetrics(db, locals.user!.id);
   const activity = activeEnergyForDate(db, locals.user!.id, date);
+  const profile = getProfile(db, locals.user!.id);
+  // Computed from today's weight unless a reading was logged today.
+  const bmr = resolveBmr(date, metrics, profile);
   return {
     date,
     scheduled: scheduledSessionFor(date),
@@ -19,9 +23,9 @@ export const load: PageServerLoad = async ({ locals }) => {
     streak: mealStreak(db, locals.user!.id, date),
     latest: metrics.at(-1) ?? null,
     recent: metrics.slice(-30),
-    // Carried forward from the last weigh-in that recorded one — weigh-ins
-    // aren't daily and BMR barely moves between them.
-    bmrKcal: bmrOnOrBefore(metrics, date),
+    profile,
+    bmrKcal: bmr?.kcal ?? null,
+    bmrSource: bmr?.source ?? null,
     activeKcal: activity?.activeKcal ?? null,
     activitySource: activity?.source ?? null
   };
@@ -72,5 +76,24 @@ export const actions: Actions = {
       return fail(400, { activityError: 'Active energy must be a whole number of kcal.' });
     }
     return { activityOk: true, date };
+  },
+
+  profile: async ({ request, locals }) => {
+    const form = await request.formData();
+    const heightRaw = String(form.get('heightCm') ?? '').trim();
+    const birthRaw = String(form.get('birthDate') ?? '').trim();
+    const sexRaw = String(form.get('sex') ?? '').trim();
+    try {
+      setProfile(db, locals.user!.id, {
+        heightCm: heightRaw === '' ? null : Number(heightRaw),
+        birthDate: birthRaw === '' ? null : birthRaw,
+        sex: sexRaw === '' ? null : sexRaw
+      });
+    } catch {
+      return fail(400, {
+        profileError: 'Height must be 50–260 cm, and the birth date a real day in the past.'
+      });
+    }
+    return { profileOk: true };
   }
 };

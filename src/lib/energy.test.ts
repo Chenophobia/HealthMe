@@ -4,6 +4,9 @@ import {
   bmrOnOrBefore,
   deficitSummary,
   weightChangeBetween,
+  ageOn,
+  mifflinStJeor,
+  resolveBmr,
   KCAL_PER_KG_FAT
 } from './energy';
 
@@ -121,5 +124,86 @@ describe('weightChangeBetween', () => {
   it('needs two weigh-ins inside the window', () => {
     expect(weightChangeBetween(metrics, '2026-07-02', '2026-07-14')).toBeNull();
     expect(weightChangeBetween([], '2026-07-01', '2026-08-01')).toBeNull();
+  });
+});
+
+describe('ageOn', () => {
+  it('counts whole years', () => {
+    expect(ageOn('1997-02-28', '2026-08-03')).toBe(29);
+  });
+
+  it('turns over on the birthday, not before it', () => {
+    expect(ageOn('1997-02-28', '2026-02-27')).toBe(28);
+    expect(ageOn('1997-02-28', '2026-02-28')).toBe(29);
+  });
+
+  it('rejects a malformed or impossible date', () => {
+    expect(ageOn('28-02-1997', '2026-08-03')).toBeNull();
+    expect(ageOn('1997-02-28', 'today')).toBeNull();
+    expect(ageOn('2027-01-01', '2026-08-03')).toBeNull(); // born in the future
+  });
+});
+
+describe('mifflinStJeor', () => {
+  it('computes the male form', () => {
+    // 10(79.9) + 6.25(169) - 5(29) + 5
+    expect(mifflinStJeor({ weightKg: 79.9, heightCm: 169, ageYears: 29, sex: 'male' })).toBe(1715);
+  });
+
+  it('computes the female form, 166 kcal lower for the same body', () => {
+    const male = mifflinStJeor({ weightKg: 79.9, heightCm: 169, ageYears: 29, sex: 'male' })!;
+    const female = mifflinStJeor({ weightKg: 79.9, heightCm: 169, ageYears: 29, sex: 'female' })!;
+    expect(male - female).toBe(166);
+  });
+
+  it('falls by 10 kcal per kilo lost, which is the point of computing it', () => {
+    const before = mifflinStJeor({ weightKg: 80, heightCm: 169, ageYears: 29, sex: 'male' })!;
+    const after = mifflinStJeor({ weightKg: 75, heightCm: 169, ageYears: 29, sex: 'male' })!;
+    expect(before - after).toBe(50);
+  });
+
+  it('is null for out-of-range or unsupported input', () => {
+    expect(mifflinStJeor({ weightKg: 0, heightCm: 169, ageYears: 29, sex: 'male' })).toBeNull();
+    expect(mifflinStJeor({ weightKg: 80, heightCm: 10, ageYears: 29, sex: 'male' })).toBeNull();
+    expect(
+      mifflinStJeor({ weightKg: 80, heightCm: 169, ageYears: 29, sex: 'other' as 'male' })
+    ).toBeNull();
+  });
+});
+
+describe('resolveBmr', () => {
+  const profile = { heightCm: 169, birthDate: '1997-02-28', sex: 'male' };
+  const metrics = [
+    { date: '2026-07-01', weightKg: 84.0, bmrKcal: 1850 },
+    { date: '2026-08-03', weightKg: 79.9, bmrKcal: null }
+  ];
+
+  it('computes from the latest weight when the day has no logged reading', () => {
+    expect(resolveBmr('2026-08-03', metrics, profile)).toEqual({ kcal: 1715, source: 'computed' });
+  });
+
+  it('prefers a reading logged on the day itself — an explicit override', () => {
+    expect(resolveBmr('2026-07-01', metrics, profile)).toEqual({ kcal: 1850, source: 'logged' });
+  });
+
+  it('does not carry a stale reading ahead of a fresh computation', () => {
+    // The 2026-07-01 reading of 1850 must not win on 2026-08-03, where the
+    // formula has a current weight to work from.
+    expect(resolveBmr('2026-08-03', metrics, profile)?.kcal).toBe(1715);
+  });
+
+  it('falls back to carrying a logged reading forward when the profile is unset', () => {
+    const bare = { heightCm: null, birthDate: null, sex: null };
+    expect(resolveBmr('2026-08-03', metrics, bare)).toEqual({ kcal: 1850, source: 'logged' });
+  });
+
+  it('is null before the first weigh-in, with nothing to compute from', () => {
+    expect(resolveBmr('2026-06-01', metrics, profile)).toBeNull();
+  });
+
+  it('is null when neither a profile nor a logged reading exists', () => {
+    const bare = { heightCm: null, birthDate: null, sex: null };
+    const noBmr = [{ date: '2026-08-03', weightKg: 79.9, bmrKcal: null }];
+    expect(resolveBmr('2026-08-03', noBmr, bare)).toBeNull();
   });
 });
