@@ -7,9 +7,13 @@
 #
 #   scripts/dev.sh            snapshot prod -> data-dev if missing, run vite
 #   scripts/dev.sh --fresh    re-snapshot prod -> data-dev, then exit
+#                             (restart a running dev server afterwards — it
+#                             still holds the old file open)
 #
 # Snapshots use sqlite3's .backup, which is safe against a database that is
-# mid-write (a plain cp is not).
+# mid-write (a plain cp is not). The source-exists guard is load-bearing:
+# sqlite3 opening a missing source "succeeds" and leaves an empty
+# ./data/app.db behind as a side effect.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -18,6 +22,10 @@ DEV_DIR=./data-dev
 DEV_DB=$DEV_DIR/app.db
 
 snapshot() {
+  [ -f "$PROD_DB" ] || {
+    echo "error: $PROD_DB not found — nothing to snapshot" >&2
+    exit 1
+  }
   mkdir -p "$DEV_DIR"
   sqlite3 "$PROD_DB" ".backup '$DEV_DB'"
   echo "Snapshotted $PROD_DB -> $DEV_DB"
@@ -28,5 +36,16 @@ if [ "${1:-}" = "--fresh" ]; then
   exit 0
 fi
 
-[ -f "$DEV_DB" ] || snapshot
-DATA_DIR=$DEV_DIR exec npx vite dev
+if [ ! -f "$DEV_DB" ]; then
+  if [ -f "$PROD_DB" ]; then
+    snapshot
+  else
+    # Fresh clone with no prod data: the app creates, migrates, and seeds
+    # an empty $DEV_DB itself on startup (src/lib/server/db/index.ts).
+    echo "No prod DB at $PROD_DB — starting with a fresh seeded dev DB"
+  fi
+fi
+
+# --strictPort: the workflow hands the user http://localhost:5173; failing
+# loudly beats vite silently moving to 5174.
+DATA_DIR=$DEV_DIR exec npx vite dev --strictPort

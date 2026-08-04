@@ -21,11 +21,18 @@ just the day-to-day logging and progress tool built around it.
 ```bash
 npm install
 cp .env.example .env
-npm run dev          # start the dev server
+npm run dev          # start the dev server on http://localhost:5173
 ```
 
+The dev server never opens `./data` — on the prod host that is the live
+database (see `CLAUDE.md`). It works against `./data-dev/app.db` instead:
+snapshotted from `./data/app.db` when one exists, otherwise created and
+seeded fresh on startup. `npm run dev:fresh-data` re-snapshots on demand.
+
 There is no signup page — create an account with the operator script (env
-vars, so the password doesn't land in shell history):
+vars, so the password doesn't land in shell history). Note the operator
+scripts default to `./data`; add `DATA_DIR=./data-dev` to target the dev
+database instead:
 
 ```bash
 CREATE_USER_USERNAME=someone CREATE_USER_PASSWORD='a-strong-password' npm run create-user
