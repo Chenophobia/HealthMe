@@ -12,6 +12,7 @@ import {
   typicalActive,
   goalIntake,
   carriedShortfall,
+  todayRequirement,
   type DeficitDay,
   type GoalPace,
   type GoalIntake,
@@ -32,6 +33,8 @@ export type DailyTarget = {
   intake: GoalIntake | null;
   /** Behind/ahead over the days the scale hasn't absorbed yet. Null if none. */
   carry: Carry | null;
+  /** The pace with the carry folded in — the one number the Goal card shows. */
+  requiredTodayKcal: number | null;
   /** What the gauges fill against. Falls back to the program's fixed anchor. */
   kcalTarget: number;
 };
@@ -121,5 +124,12 @@ export function dailyTarget(db: Db, userId: number, today: string): DailyTarget 
         )
       : null;
 
-  return { pace, intake, carry, kcalTarget: intake?.intakeKcal ?? KCAL_TARGET };
+  return {
+    pace,
+    intake,
+    carry,
+    requiredTodayKcal:
+      pace && !pace.reached && !pace.expired ? todayRequirement(pace.perDayKcal, carry) : null,
+    kcalTarget: intake?.intakeKcal ?? KCAL_TARGET
+  };
 }

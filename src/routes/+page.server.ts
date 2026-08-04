@@ -26,7 +26,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
   // The goal is about where you are now, so it is paced from today and the
   // latest weigh-in — not from whatever day happens to be on screen.
-  const { pace, intake, carry, kcalTarget } = dailyTarget(db, locals.user!.id, today);
+  const { pace, intake, carry, requiredTodayKcal, kcalTarget } = dailyTarget(
+    db,
+    locals.user!.id,
+    today
+  );
 
   // The weigh-in shown is the one for the day on screen, falling back to the
   // most recent before it — the "On" column names which, so it can't mislead.
@@ -46,6 +50,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
     pace,
     intake,
     carry,
+    requiredTodayKcal,
     kcalTarget,
     bmrKcal: bmr?.kcal ?? null,
     bmrSource: bmr?.source ?? null,

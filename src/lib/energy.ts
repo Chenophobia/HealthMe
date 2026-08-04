@@ -353,6 +353,19 @@ export type Carry = {
  * counting those days again here would book the same shortfall twice. What's
  * left to carry is the stretch the scale hasn't seen yet.
  */
+/**
+ * The deficit to aim for today: the flat pace, adjusted by what the days since
+ * the last weigh-in actually banked.
+ *
+ * Folding the carry in is safe precisely because it only spans days the scale
+ * hasn't priced in — so this corrects for them without counting them twice
+ * against the weight-derived pace. Clamped at zero: far enough ahead and the
+ * answer is "nothing more today", not a negative target.
+ */
+export function todayRequirement(perDayKcal: number, carry: Carry | null): number {
+  return Math.max(0, Math.round(perDayKcal + (carry?.kcal ?? 0)));
+}
+
 export function carriedShortfall(perDayKcal: number, days: DeficitDay[]): Carry | null {
   const complete = days.filter((d) => d.deficitKcal !== null) as {
     date: string;

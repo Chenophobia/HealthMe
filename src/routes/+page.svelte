@@ -49,11 +49,8 @@
     data.profile.heightCm !== null && data.profile.birthDate !== null && data.profile.sex !== null
   );
 
-  const shortfall = $derived(
-    data.pace && data.intake ? Math.round(data.pace.perDayKcal - data.intake.deficitAtIntake) : 0
-  );
-
   const isToday = $derived(data.date === data.today);
+  const hasGoal = $derived(data.profile.goalWeightKg !== null && data.profile.goalDate !== null);
 </script>
 
 <svelte:head><title>Today — health-me</title></svelte:head>
@@ -158,61 +155,28 @@
           <span
             class="tabular font-mono text-4xl leading-none font-semibold tracking-tight sm:text-5xl"
           >
-            {formatNumber(data.pace.perDayKcal)}
+            {formatNumber(data.requiredTodayKcal ?? data.pace.perDayKcal)}
           </span>
-          <span class="text-ink-muted font-mono text-sm">kcal a day</span>
+          <span class="text-ink-muted font-mono text-sm">kcal today</span>
         </p>
         <p class="text-ink-muted mt-2.5 text-sm">
-          To reach {data.profile.goalWeightKg} kg by {data.profile.goalDate} — {data.pace.days}
-          {data.pace.days === 1 ? 'day' : 'days'} away.
+          To stay on track for {data.profile.goalWeightKg} kg by {data.profile.goalDate}.
         </p>
-
-        {#if data.intake}
-          <div class="border-hairline mt-4 border-t pt-4">
-            <p class="text-sm">
-              Eat <span class="font-semibold">{formatNumber(data.intake.intakeKcal)} kcal</span> a
-              day. That gives you about
-              <span class="font-semibold">{formatNumber(data.intake.deficitAtIntake)}</span>.
-            </p>
-            {#if data.intake.floored}
-              <p class="text-warn mt-2 text-sm">
-                {formatNumber(shortfall)} kcal/day short of what the goal needs. Eating less isn't the
-                answer — {formatNumber(KCAL_FLOOR)} is the floor — so the gap has to come from moving
-                more, or from a later date.
-              </p>
-            {/if}
-
-            <!-- The running balance since the last weigh-in. Deliberately not
-                 folded into the daily number: the pace already re-derives
-                 itself from measured weight, and adding an estimate on top
-                 would count the same shortfall twice. -->
-            {#if data.carry}
-              <p class="text-ink-muted mt-3 text-sm">
-                {#if data.carry.kcal > 0}
-                  Since your last weigh-in you're
-                  <span class="text-warn font-semibold"
-                    >{formatNumber(data.carry.kcal)} kcal behind</span
-                  >
-                  the pace, over {data.carry.days}
-                  {data.carry.days === 1 ? 'day' : 'days'}. Your next weigh-in folds that in.
-                {:else}
-                  Since your last weigh-in you're
-                  <span class="text-good font-semibold"
-                    >{formatNumber(-data.carry.kcal)} kcal ahead</span
-                  >
-                  of the pace, over {data.carry.days}
-                  {data.carry.days === 1 ? 'day' : 'days'}.
-                {/if}
-              </p>
-            {/if}
-          </div>
-        {:else}
-          <p class="text-ink-muted mt-4 text-sm">
-            Needs a weigh-in and body profile before it can set a target.
+        {#if data.intake?.floored}
+          <p class="text-warn mt-3 text-sm">
+            Eating less won't get you there — {formatNumber(KCAL_FLOOR)} is your floor. The rest has to
+            come from moving.
           </p>
         {/if}
       {/if}
     </div>
+  {:else if hasGoal}
+    <!-- A goal *is* set; it just can't be paced yet. Saying "none set" here
+         would read as the goal having vanished. -->
+    <p class="border-hairline text-ink-muted border-t p-4 text-sm sm:p-5">
+      {data.profile.goalWeightKg} kg by {data.profile.goalDate} — log a weigh-in and the daily number
+      appears.
+    </p>
   {:else}
     <p class="border-hairline text-ink-muted border-t p-4 text-sm sm:p-5">
       None set — calories follow the program's {formatNumber(KCAL_TARGET)} kcal anchor.

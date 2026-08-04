@@ -11,6 +11,7 @@ import {
   typicalActive,
   goalIntake,
   carriedShortfall,
+  todayRequirement,
   KCAL_PER_KG_FAT
 } from './energy';
 
@@ -369,5 +370,23 @@ describe('carriedShortfall', () => {
   it('is null when there is nothing complete to carry', () => {
     expect(carriedShortfall(834, [])).toBeNull();
     expect(carriedShortfall(834, [{ date: '2026-08-01', deficitKcal: null }])).toBeNull();
+  });
+});
+
+describe('todayRequirement', () => {
+  it('adds a shortfall onto the flat pace', () => {
+    expect(todayRequirement(858, { days: 1, kcal: 314 })).toBe(1172);
+  });
+
+  it('subtracts a surplus, so a good day earns you an easier one', () => {
+    expect(todayRequirement(858, { days: 1, kcal: -314 })).toBe(544);
+  });
+
+  it('is just the pace when nothing has been carried', () => {
+    expect(todayRequirement(858, null)).toBe(858);
+  });
+
+  it('never asks for a negative deficit, however far ahead you are', () => {
+    expect(todayRequirement(858, { days: 5, kcal: -5000 })).toBe(0);
   });
 });
