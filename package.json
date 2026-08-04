@@ -7,7 +7,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "vite dev",
+    "dev": "scripts/dev.sh",
+    "dev:fresh-data": "scripts/dev.sh --fresh",
     "build": "vite build",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
