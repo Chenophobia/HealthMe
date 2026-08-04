@@ -1,6 +1,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 import type { Db } from './db/connect';
-import { mealLogs, recipes } from './db/schema';
+import { mealLogs, recipes, foods } from './db/schema';
+import { scaleFood } from '$lib/foods';
 
 export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 export const MEAL_SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -23,6 +24,39 @@ export function logRecipeMeal(
       recipeId,
       kcal: recipe.kcal,
       proteinG: recipe.proteinG,
+      loggedAt: now.toISOString()
+    })
+    .run();
+}
+
+/**
+ * Logs a portion of a food. The scaled figures are snapshotted like every other
+ * row, so correcting a food's nutrition later never rewrites what you ate.
+ */
+export function logFoodMeal(
+  db: Db,
+  userId: number,
+  date: string,
+  mealSlot: MealSlot,
+  foodId: number,
+  quantity: number,
+  now: Date = new Date()
+): void {
+  const [food] = db.select().from(foods).where(eq(foods.id, foodId)).limit(1).all();
+  if (!food) throw new Error(`Unknown food id ${foodId}`);
+
+  const scaled = scaleFood(food, quantity);
+  if (!scaled) throw new Error('Quantity must be a positive number');
+
+  db.insert(mealLogs)
+    .values({
+      userId,
+      date,
+      mealSlot,
+      foodId,
+      quantity,
+      kcal: scaled.kcal,
+      proteinG: scaled.proteinG,
       loggedAt: now.toISOString()
     })
     .run();
@@ -62,13 +96,16 @@ export function mealsForDate(db: Db, userId: number, date: string) {
       id: mealLogs.id,
       mealSlot: mealLogs.mealSlot,
       recipeCode: recipes.code,
-      name: sql<string>`coalesce(${recipes.name}, ${mealLogs.customName})`,
+      name: sql<string>`coalesce(${recipes.name}, ${foods.name}, ${mealLogs.customName})`,
+      quantity: mealLogs.quantity,
+      unit: foods.unit,
       kcal: mealLogs.kcal,
       proteinG: mealLogs.proteinG,
       loggedAt: mealLogs.loggedAt
     })
     .from(mealLogs)
     .leftJoin(recipes, eq(recipes.id, mealLogs.recipeId))
+    .leftJoin(foods, eq(foods.id, mealLogs.foodId))
     .where(and(eq(mealLogs.userId, userId), eq(mealLogs.date, date)))
     .orderBy(mealLogs.loggedAt)
     .all();

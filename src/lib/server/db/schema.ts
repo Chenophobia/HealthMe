@@ -14,6 +14,34 @@ export const recipes = sqliteTable('recipes', {
   displayOrder: integer('display_order').notNull()
 });
 
+/*
+ * Individual foods, logged by quantity.
+ *
+ * Nutrition is stored per `baseQty` rather than per unit so both weights and
+ * countable things fit one table: 100 g of chicken, 1 banana. Everything else
+ * scales from that.
+ *
+ * `userId` is null on the seeded starters and set on anything added in-app.
+ * Archived rather than deleted — a food is referenced by every meal you logged
+ * with it, and removing it would orphan that history.
+ */
+export const foods = sqliteTable(
+  'foods',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id').references(() => users.id),
+    name: text('name').notNull(),
+    unit: text('unit').notNull(), // 'g' | 'ml' | 'item'
+    baseQty: real('base_qty').notNull(), // 100 for g/ml, 1 for item
+    kcal: real('kcal').notNull(), // per baseQty
+    proteinG: real('protein_g').notNull(), // per baseQty
+    defaultQty: real('default_qty').notNull(),
+    archivedAt: text('archived_at'),
+    createdAt: text('created_at').notNull()
+  },
+  (t) => [index('foods_name_idx').on(t.name)]
+);
+
 export const exercises = sqliteTable('exercises', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   sessionType: text('session_type').notNull(), // 'push' | 'pull' | 'legs'
@@ -128,10 +156,13 @@ export const mealLogs = sqliteTable(
       .references(() => users.id),
     date: text('date').notNull(),
     mealSlot: text('meal_slot').notNull(), // 'breakfast' | 'lunch' | 'dinner' | 'snack'
-    // Exactly one of recipeId / customName is set (enforced in meals.ts, the
-    // only writer — SQLite CHECK constraints are awkward to alter later).
+    // Exactly one of recipeId / foodId / customName is set (enforced in meals.ts,
+    // the only writer — SQLite CHECK constraints are awkward to alter later).
     recipeId: integer('recipe_id').references(() => recipes.id),
+    foodId: integer('food_id').references(() => foods.id),
     customName: text('custom_name'),
+    /** How much of the food — null for recipe and custom rows. */
+    quantity: real('quantity'),
     // Snapshotted at log time so a later recipe edit + reseed never rewrites
     // logged history.
     kcal: integer('kcal').notNull(),

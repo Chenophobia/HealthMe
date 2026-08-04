@@ -1,16 +1,15 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { asc } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { recipes } from '$lib/server/db/schema';
 import {
   MEAL_SLOTS,
   type MealSlot,
-  logRecipeMeal,
+  logFoodMeal,
   logCustomMeal,
   mealsForDate,
   dayTotals,
   deleteMealLog
 } from '$lib/server/meals';
+import { listFoods } from '$lib/server/foods';
 import { dailyTarget } from '$lib/server/target';
 import { todayLocal, isValidDate, shiftDate } from '$lib/dates';
 import type { Actions, PageServerLoad } from './$types';
@@ -27,7 +26,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
     today,
     prevDate: shiftDate(date, -1),
     nextDate: shiftDate(date, 1),
-    recipes: db.select().from(recipes).orderBy(asc(recipes.displayOrder)).all(),
+    foods: listFoods(db, locals.user!.id),
     logs: mealsForDate(db, locals.user!.id, date),
     totals: dayTotals(db, locals.user!.id, date),
     // Same figure Today fills its gauge against — computed once, in one place.
@@ -49,12 +48,20 @@ function dateOf(form: FormData): string {
 }
 
 export const actions: Actions = {
-  recipe: async ({ request, locals }) => {
+  food: async ({ request, locals }) => {
     const form = await request.formData();
+    const quantity = Number(String(form.get('quantity') ?? '').trim());
     try {
-      logRecipeMeal(db, locals.user!.id, dateOf(form), slotOf(form), Number(form.get('recipeId')));
+      logFoodMeal(
+        db,
+        locals.user!.id,
+        dateOf(form),
+        slotOf(form),
+        Number(form.get('foodId')),
+        quantity
+      );
     } catch {
-      return fail(400, { recipeError: 'Could not log that recipe.' });
+      return fail(400, { foodError: 'Pick a food and a portion above zero.' });
     }
     return { ok: true };
   },

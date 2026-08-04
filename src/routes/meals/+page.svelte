@@ -3,7 +3,9 @@
   import { PROTEIN_TARGET_G, PROTEIN_AIM_G } from '$lib/targets';
   import { weekdayOf } from '$lib/dates';
   import DateNav from '$lib/components/DateNav.svelte';
+  import FoodPicker from '$lib/components/FoodPicker.svelte';
   import Gauge from '$lib/components/Gauge.svelte';
+  import { formatQuantity, type FoodUnit } from '$lib/foods';
   import type { PageData, ActionData } from './$types';
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -15,18 +17,11 @@
     snack: 'Snack'
   };
 
-  const recipeGroups = [
-    { type: 'breakfast', label: 'Breakfast' },
-    { type: 'lunch', label: 'Lunch' },
-    { type: 'dinner', label: 'Dinner' },
-    { type: 'snack', label: 'Snacks' }
-  ];
-
   const isToday = $derived(data.date === data.today);
 
   /* One card, two ways to fill it. Splitting these across separate cards made
      the page read as two unrelated jobs. */
-  let logMode: 'recipe' | 'custom' = $state('recipe');
+  let logMode: 'food' | 'custom' = $state('food');
 </script>
 
 <svelte:head><title>Meals — health-me</title></svelte:head>
@@ -76,7 +71,10 @@
             <div class="min-w-0 flex-1">
               <p class="truncate font-medium">{log.name}</p>
               <p class="text-ink-muted tabular mt-0.5 font-mono text-xs">
-                {mealSlotLabels[log.mealSlot]} · {log.kcal} kcal · {log.proteinG} g P
+                <!-- Non-breaking so a wrap can't orphan the "P" on its own line. -->
+                {mealSlotLabels[log.mealSlot]}{log.quantity && log.unit
+                  ? ` · ${formatQuantity(log.quantity, log.unit as FoodUnit)}`
+                  : ''} · {log.kcal}&nbsp;kcal · {log.proteinG}&nbsp;g&nbsp;P
               </p>
             </div>
             <form method="POST" action="?/delete" use:enhance>
@@ -99,14 +97,14 @@
   <div class="flex items-center justify-between gap-3 p-4">
     <span class="eyebrow text-ink-muted">Log</span>
     <div class="border-hairline flex rounded-sm border p-0.5" role="group" aria-label="Entry type">
-      {#each [{ id: 'recipe', label: 'Recipe' }, { id: 'custom', label: 'Custom' }] as mode (mode.id)}
+      {#each [{ id: 'food', label: 'Food' }, { id: 'custom', label: 'Custom' }] as mode (mode.id)}
         <button
           type="button"
           aria-pressed={logMode === mode.id}
           class="rounded-xs px-3 py-1.5 text-sm font-medium {logMode === mode.id
             ? 'bg-accent text-on-accent'
             : 'text-ink-muted hover:text-ink'}"
-          onclick={() => (logMode = mode.id as 'recipe' | 'custom')}
+          onclick={() => (logMode = mode.id as 'food' | 'custom')}
         >
           {mode.label}
         </button>
@@ -114,12 +112,12 @@
     </div>
   </div>
 
-  {#if logMode === 'recipe'}
+  {#if logMode === 'food'}
     <form
       method="POST"
-      action="?/recipe"
+      action="?/food"
       use:enhance
-      class="border-hairline flex flex-col gap-3 border-t p-4 sm:flex-row sm:items-end"
+      class="border-hairline flex flex-col gap-3 border-t p-4"
     >
       <input type="hidden" name="date" value={data.date} />
       <label class="flex flex-col gap-1.5 sm:w-36">
@@ -130,28 +128,20 @@
           {/each}
         </select>
       </label>
-      <label class="flex flex-1 flex-col gap-1.5">
-        <span class="eyebrow text-ink-muted">Recipe</span>
-        <select name="recipeId" class="field">
-          {#each recipeGroups as group (group.type)}
-            {@const recipes = data.recipes.filter((r) => r.mealType === group.type)}
-            {#if recipes.length > 0}
-              <optgroup label={group.label}>
-                {#each recipes as recipe (recipe.id)}
-                  <option value={recipe.id}>
-                    {recipe.code} · {recipe.name} · {recipe.kcal} kcal / {recipe.proteinG} g P
-                  </option>
-                {/each}
-              </optgroup>
-            {/if}
-          {/each}
-        </select>
-      </label>
-      <button class="btn-primary">Add</button>
-      {#if form?.recipeError}
-        <p class="text-over text-sm">{form.recipeError}</p>
+
+      <!-- Keyed on the log count so the picker resets itself after each add,
+           ready for the next ingredient rather than holding the last one. -->
+      {#key data.logs.length}
+        <FoodPicker foods={data.foods} />
+      {/key}
+
+      {#if form?.foodError}
+        <p class="text-over text-sm">{form.foodError}</p>
       {/if}
     </form>
+    <p class="border-hairline text-ink-muted border-t px-4 py-3 text-sm">
+      <a href="/foods" class="text-accent font-medium">Manage foods →</a>
+    </p>
   {:else}
     <form
       method="POST"

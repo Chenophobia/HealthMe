@@ -1,7 +1,81 @@
-import type { recipes, exercises } from '../db/schema';
+import type { recipes, exercises, foods } from '../db/schema';
 
 export type RecipeSeed = Omit<typeof recipes.$inferInsert, 'id' | 'displayOrder'>;
 export type ExerciseSeed = Omit<typeof exercises.$inferInsert, 'id' | 'displayOrder'>;
+export type FoodSeed = Omit<typeof foods.$inferInsert, 'id' | 'userId' | 'createdAt'>;
+
+/*
+ * Starter foods, drawn from the program's own shopping list and recipes.
+ *
+ * Figures are the usual reference values per 100 g/ml (or per item), rounded —
+ * good enough to log against, and every one of them editable in the app,
+ * because the packet in your cupboard is the authority, not this list.
+ */
+const per100 = (
+  name: string,
+  kcal: number,
+  proteinG: number,
+  defaultQty: number,
+  unit: 'g' | 'ml' = 'g'
+): FoodSeed => ({ name, unit, baseQty: 100, kcal, proteinG, defaultQty, archivedAt: null });
+
+const perItem = (name: string, kcal: number, proteinG: number): FoodSeed => ({
+  name,
+  unit: 'item',
+  baseQty: 1,
+  kcal,
+  proteinG,
+  defaultQty: 1,
+  archivedAt: null
+});
+
+export const FOODS: FoodSeed[] = [
+  // Protein
+  per100('Chicken breast', 165, 31, 150),
+  per100('Turkey breast', 135, 29, 150),
+  per100('Beef mince 5%', 137, 21, 150),
+  per100('Salmon fillet', 208, 20, 130),
+  per100('Tuna, canned in water', 116, 26, 100),
+  per100('Prawns', 99, 24, 120),
+  perItem('Egg, medium', 78, 6.3),
+  per100('Egg whites', 52, 11, 200, 'ml'),
+  per100('Greek yogurt 0%', 59, 10, 150),
+  per100('Skyr', 63, 11, 150),
+  per100('Cottage cheese', 98, 11, 150),
+  per100('Whey protein, chocolate', 380, 76, 30),
+  per100('Whey protein, vanilla', 380, 76, 30),
+  // Carbs
+  per100('Oats, dry', 379, 13, 40),
+  per100('Rice, cooked', 130, 2.7, 180),
+  per100('Rice, dry', 360, 7, 60),
+  per100('Pasta, dry', 371, 13, 70),
+  per100('Potato', 77, 2, 200),
+  per100('Sweet potato', 86, 1.6, 200),
+  per100('Wholemeal bread', 247, 10, 60),
+  per100('Couscous, dry', 376, 13, 60),
+  // Fruit and veg
+  perItem('Banana, medium', 105, 1.3),
+  perItem('Apple, medium', 95, 0.5),
+  per100('Blueberries', 57, 0.7, 100),
+  per100('Strawberries', 32, 0.7, 100),
+  per100('Broccoli', 34, 2.8, 150),
+  per100('Green beans', 31, 1.8, 150),
+  per100('Spinach', 23, 2.9, 100),
+  per100('Mixed salad', 15, 1.4, 100),
+  per100('Tomato', 18, 0.9, 100),
+  per100('Cucumber', 15, 0.7, 100),
+  // Fats and extras
+  per100('Olive oil', 884, 0, 10, 'ml'),
+  per100('Semi-skimmed milk', 50, 3.6, 250, 'ml'),
+  per100('Cashews', 553, 18, 20),
+  per100('Almonds', 579, 21, 20),
+  per100('Peanut butter', 588, 25, 20),
+  per100('Avocado', 160, 2, 80),
+  per100('Cheddar', 403, 25, 30),
+  per100('Feta', 264, 14, 40),
+  per100('Hummus', 166, 8, 50),
+  per100('Dark chocolate 85%', 592, 10, 20)
+];
 
 export const RECIPES: RecipeSeed[] = [
   // Breakfast — codes B1–B6 assigned here (the source lists them uncoded)
