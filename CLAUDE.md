@@ -30,24 +30,32 @@ straight to prod?** Don't assume either way.
    still holds the old file open).
 3. Iterate on the branch with the user testing on localhost.
 
-### Finishing a feature (squash-merge to main)
+### Finishing a feature (PR, then squash-merge on GitHub)
+
+Never squash-merge locally — the PR is the record of what was done and why.
 
 When the user says the feature is done:
 
 1. Verify: `npm run lint && npm run check && npm test && npm run build`
    (all four are what CI runs — a red CI means no image and no deploy)
-2. Squash-merge locally and push:
+2. Push the branch and open a PR:
 
    ```bash
-   git checkout main
-   git merge --squash feat/<short-name>
-   git commit   # one commit message for the whole feature
-   git push
-   git branch -D feat/<short-name>
-   git push origin --delete feat/<short-name>   # if the branch was pushed
+   git push -u origin feat/<short-name>
+   gh pr create --fill   # title + body summarising the feature
    ```
 
-3. Remind the user prod goes live in ~5–10 minutes (watch for the
+3. Give the user the PR URL to review. Wait for their approval — they may
+   review on GitHub or just say "merge it" in chat.
+4. Squash-merge on GitHub, which also deletes the remote branch:
+
+   ```bash
+   gh pr merge --squash --delete-branch
+   git checkout main && git pull
+   git branch -D feat/<short-name>
+   ```
+
+5. Remind the user prod goes live in ~5–10 minutes (watch for the
    `deployed` line in `deploy/update.log`).
 
 ### Straight to prod
