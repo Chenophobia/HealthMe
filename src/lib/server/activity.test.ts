@@ -46,8 +46,8 @@ describe('setActiveEnergy', () => {
     setActiveEnergy(db, user.id, { date: '2026-08-02', activeKcal: 100, source: 'manual' });
     setActiveEnergy(db, user.id, { date: '2026-08-03', activeKcal: 200, source: 'manual' });
     expect(listActiveEnergy(db, user.id)).toEqual([
-      { date: '2026-08-02', activeKcal: 100 },
-      { date: '2026-08-03', activeKcal: 200 }
+      { date: '2026-08-02', activeKcal: 100, basalKcal: null },
+      { date: '2026-08-03', activeKcal: 200, basalKcal: null }
     ]);
   });
 
@@ -75,5 +75,56 @@ describe('setActiveEnergy', () => {
   it('is null for a day nothing arrived for', () => {
     const { db, user } = setup();
     expect(activeEnergyForDate(db, user.id, '2026-08-03')).toBeNull();
+  });
+
+  it('stores resting energy alongside active when the Shortcut sends it', () => {
+    const { db, user } = setup();
+    setActiveEnergy(db, user.id, {
+      date: '2026-08-03',
+      activeKcal: 542,
+      basalKcal: 1710.4,
+      source: 'shortcut'
+    });
+    expect(activeEnergyForDate(db, user.id, '2026-08-03')).toMatchObject({
+      activeKcal: 542,
+      basalKcal: 1710
+    });
+    expect(listActiveEnergy(db, user.id)).toEqual([
+      { date: '2026-08-03', activeKcal: 542, basalKcal: 1710 }
+    ]);
+  });
+
+  it('reads resting energy back as null when it never arrived', () => {
+    const { db, user } = setup();
+    setActiveEnergy(db, user.id, { date: '2026-08-03', activeKcal: 542, source: 'shortcut' });
+    expect(activeEnergyForDate(db, user.id, '2026-08-03')?.basalKcal).toBeNull();
+  });
+
+  it('an active-only re-post clears a stale resting figure — the write is the whole day', () => {
+    const { db, user } = setup();
+    setActiveEnergy(db, user.id, {
+      date: '2026-08-03',
+      activeKcal: 300,
+      basalKcal: 900,
+      source: 'shortcut'
+    });
+    setActiveEnergy(db, user.id, { date: '2026-08-03', activeKcal: 640, source: 'shortcut' });
+    expect(activeEnergyForDate(db, user.id, '2026-08-03')).toMatchObject({
+      activeKcal: 640,
+      basalKcal: null
+    });
+  });
+
+  it('refuses a negative or kJ-sized resting figure', () => {
+    const { db, user } = setup();
+    const bad = (basalKcal: number) =>
+      setActiveEnergy(db, user.id, {
+        date: '2026-08-03',
+        activeKcal: 100,
+        basalKcal,
+        source: 'shortcut'
+      });
+    expect(() => bad(-1)).toThrow();
+    expect(() => bad(50_000)).toThrow(/units/);
   });
 });

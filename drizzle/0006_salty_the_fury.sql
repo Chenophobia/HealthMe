@@ -1,0 +1,1 @@
+ALTER TABLE `activity_logs` ADD `basal_kcal` integer;

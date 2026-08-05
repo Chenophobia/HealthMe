@@ -52,9 +52,13 @@ authenticated with a bearer token rather than the session cookie (a Shortcut
 has no cookie jar, and a redirect to `/login` would be reported back to it as
 a success).
 
-**It is Apple's _Active_ Energy that goes in, not total.** Resting burn is
-BMR's job (see below); posting Apple's total counts it twice and flatters the
-deficit by well over 1,000 kcal a day.
+**Two separate figures go in, never a total.** `activeKcal` is Apple's
+_Active_ Energy; `basalKcal` (optional) is Apple's _Resting_ Energy, the
+Watch's own estimate of the resting half. They stay separate columns because
+they answer different questions — posting active+resting as `activeKcal`
+counts resting burn twice and flatters the deficit by well over 1,000 kcal a
+day. When `basalKcal` arrives, the budget's earned-calorie math prefers it
+over the Mifflin–St Jeor estimate; when it doesn't, the estimate stands in.
 
 Mint a token — printed once, only its SHA-256 digest is stored:
 
@@ -69,8 +73,8 @@ Check the endpoint before wiring up the phone:
 curl -X POST https://<host>/api/activity \
   -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
-  -d '{"activeKcal": 542}'
-# {"ok":true,"date":"2026-08-03","activeKcal":542}
+  -d '{"activeKcal": 542, "basalKcal": 1710}'
+# {"ok":true,"date":"2026-08-03","activeKcal":542,"basalKcal":1710}
 ```
 
 `date` is optional and defaults to the server's today; re-posting a day
@@ -81,9 +85,15 @@ versions — this is the shape, not a transcript):
 
 1. **Find All Health Samples** — type Active Energy, filtered to today.
 2. **Calculate Statistics** — Sum, over the **Health Samples variable itself**.
-3. **Get Contents of URL** — `https://<host>/api/activity`, method POST,
+3. **Find All Health Samples** — type Resting Energy, filtered to today.
+4. **Calculate Statistics** — Sum, again over the samples variable itself.
+5. **Get Contents of URL** — `https://<host>/api/activity`, method POST,
    headers `Authorization: Bearer <token>` and `Content-Type: application/json`,
-   request body JSON with `activeKcal` set to the sum from step 2.
+   request body JSON with `activeKcal` set to the sum from step 2 and
+   `basalKcal` to the sum from step 4.
+
+An existing active-only Shortcut keeps working — `basalKcal` is optional, and
+without it resting burn falls back to the Mifflin–St Jeor estimate below.
 
 Step 2 is easy to get subtly wrong. Do **not** drill into the samples' `Value`
 property — it appears to round each sample individually, and Active Energy is

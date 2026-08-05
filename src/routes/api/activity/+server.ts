@@ -7,7 +7,8 @@
  *
  *   POST /api/activity
  *   Authorization: Bearer <token from npm run create-api-token>
- *   { "activeKcal": 542, "date": "2026-08-03" }   // date optional, defaults to today
+ *   { "activeKcal": 542, "basalKcal": 1710, "date": "2026-08-03" }
+ *   // date optional, defaults to today; basalKcal (Resting Energy) optional
  *
  * Re-posting a day overwrites it, because the Shortcut sends a running total
  * that grows through the day.
@@ -35,7 +36,7 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ error: 'Body must be a JSON object.' }, { status: 400 });
   }
 
-  const body = payload as { date?: unknown; activeKcal?: unknown };
+  const body = payload as { date?: unknown; activeKcal?: unknown; basalKcal?: unknown };
   const today = todayLocal();
   const date = body.date === undefined || body.date === null ? today : String(body.date);
   if (!isValidDate(date)) {
@@ -50,11 +51,24 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ error: 'activeKcal must be a number.' }, { status: 400 });
   }
 
+  let basalKcal: number | null = null;
+  if (body.basalKcal !== undefined && body.basalKcal !== null) {
+    basalKcal = Number(body.basalKcal);
+    if (!Number.isFinite(basalKcal)) {
+      return json({ error: 'basalKcal must be a number when present.' }, { status: 400 });
+    }
+  }
+
   try {
-    setActiveEnergy(db, auth.userId, { date, activeKcal, source: 'shortcut' });
+    setActiveEnergy(db, auth.userId, { date, activeKcal, basalKcal, source: 'shortcut' });
   } catch (e) {
     return json({ error: (e as Error).message }, { status: 400 });
   }
 
-  return json({ ok: true, date, activeKcal: Math.round(activeKcal) });
+  return json({
+    ok: true,
+    date,
+    activeKcal: Math.round(activeKcal),
+    basalKcal: basalKcal === null ? null : Math.round(basalKcal)
+  });
 };

@@ -69,7 +69,12 @@ export const users = sqliteTable('users', {
   // What the intake target is worked back from. Nullable: without a goal the
   // app falls back to the program's fixed anchor in targets.ts.
   goalWeightKg: real('goal_weight_kg'),
-  goalDate: text('goal_date') // YYYY-MM-DD
+  goalDate: text('goal_date'), // YYYY-MM-DD
+  // The Today page's card order, comma-separated card keys (see
+  // $lib/today-cards.ts). Null means the default order; unknown keys are
+  // dropped and missing ones appended on read, so stale values can't break
+  // the page after a redesign.
+  todayOrder: text('today_order')
 });
 
 export const sessions = sqliteTable('sessions', {
@@ -119,9 +124,13 @@ export const activityLogs = sqliteTable(
       .notNull()
       .references(() => users.id),
     date: text('date').notNull(),
-    // Apple Health's *Active* Energy only. Resting burn is BMR's job; adding
-    // Apple's total here would count it twice.
+    // Apple Health's *Active* Energy. Kept apart from resting burn so the
+    // two are never added into each other's territory.
     activeKcal: integer('active_kcal').notNull(),
+    // Apple Health's Resting (Basal) Energy, the Watch's own estimate. Null
+    // for days logged before the Shortcut learned to send it — the budget
+    // math falls back to BMR then.
+    basalKcal: integer('basal_kcal'),
     source: text('source').notNull(), // 'shortcut' | 'manual'
     loggedAt: text('logged_at').notNull()
   },

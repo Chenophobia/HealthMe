@@ -7,7 +7,10 @@ import { mealStreak } from '$lib/server/streaks';
 import { getProfile, setProfile } from '$lib/server/profile';
 import { todayLocal, isValidDate, scheduledSessionFor, shiftDate } from '$lib/dates';
 import { dailyTarget } from '$lib/server/target';
+import { weekReadout, dayEnergyReadout } from '$lib/server/week';
+import { getTodayOrder, setTodayOrder } from '$lib/server/prefs';
 import { resolveBmr } from '$lib/energy';
+import { dayBudget } from '$lib/budget';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -26,15 +29,23 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
   // The goal is about where you are now, so it is paced from today and the
   // latest weigh-in — not from whatever day happens to be on screen.
-  const { pace, intake, carry, requiredTodayKcal, kcalTarget } = dailyTarget(
-    db,
-    locals.user!.id,
-    today
-  );
+  // Only the pace (for the Goal card) and the target itself reach the page:
+  // the required deficit is already baked into the budget, so surfacing it
+  // separately would just be the same number wearing two hats.
+  const { pace, kcalTarget } = dailyTarget(db, locals.user!.id, today);
 
   // The weigh-in shown is the one for the day on screen, falling back to the
   // most recent before it — the "On" column names which, so it can't mislead.
   const onOrBefore = metrics.filter((m) => m.date <= date);
+
+  const totals = dayTotals(db, locals.user!.id, date);
+  // The ring's arithmetic: earned burn raises the day's allowance.
+  const earned = dayEnergyReadout(db, locals.user!.id, date);
+  const budget = dayBudget({
+    budgetKcal: kcalTarget,
+    earnedKcal: earned.earnedKcal,
+    eatenKcal: totals.kcal
+  });
 
   return {
     date,
@@ -42,19 +53,21 @@ export const load: PageServerLoad = async ({ locals, url }) => {
     prevDate: shiftDate(date, -1),
     nextDate: shiftDate(date, 1),
     scheduled: scheduledSessionFor(date),
-    totals: dayTotals(db, locals.user!.id, date),
+    totals,
+    earned,
+    budget,
+    week: weekReadout(db, locals.user!.id, date, kcalTarget),
+    cardOrder: getTodayOrder(db, locals.user!.id),
     streak: mealStreak(db, locals.user!.id, date),
     latest: onOrBefore.at(-1) ?? null,
     recent: metrics.slice(-30),
     profile,
     pace,
-    intake,
-    carry,
-    requiredTodayKcal,
     kcalTarget,
     bmrKcal: bmr?.kcal ?? null,
     bmrSource: bmr?.source ?? null,
     activeKcal: activity?.activeKcal ?? null,
+    basalKcal: activity?.basalKcal ?? null,
     activitySource: activity?.source ?? null
   };
 };
@@ -94,14 +107,16 @@ export const actions: Actions = {
     if (!isValidDate(date) || date > today) {
       return fail(400, { activityError: 'Date must be a real day, today or earlier.' });
     }
+    const basalRaw = String(form.get('basalKcal') ?? '').trim();
     try {
       setActiveEnergy(db, locals.user!.id, {
         date,
         activeKcal: Number(String(form.get('activeKcal') ?? '').trim()),
+        basalKcal: basalRaw === '' ? null : Number(basalRaw),
         source: 'manual'
       });
     } catch {
-      return fail(400, { activityError: 'Active energy must be a whole number of kcal.' });
+      return fail(400, { activityError: 'Energy figures must be whole kcal, resting optional.' });
     }
     return { activityOk: true, date };
   },
@@ -125,6 +140,13 @@ export const actions: Actions = {
       });
     }
     return { profileOk: true };
+  },
+
+  order: async ({ request, locals }) => {
+    const form = await request.formData();
+    // normalizeTodayOrder makes any string safe — worst case is the default.
+    setTodayOrder(db, locals.user!.id, String(form.get('order') ?? ''));
+    return { orderOk: true };
   },
 
   goal: async ({ request, locals }) => {
