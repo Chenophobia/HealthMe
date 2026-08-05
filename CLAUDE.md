@@ -22,7 +22,9 @@ straight to prod?** Don't assume either way.
 
 1. Create a feature branch off `main` (e.g. `feat/<short-name>`).
 2. Start the dev server with `npm run dev` and give the user the URL:
-   **http://localhost:5173**. It serves `./data-dev/app.db` — on first run
+   **http://localhost:5173** — plus the LAN URL vite prints
+   (`http://<mac-ip>:5173`, e.g. from `ipconfig getifaddr en0`) when they
+   want to open it on their phone. It serves `./data-dev/app.db` — on first run
    this is auto-snapshotted from prod; `npm run dev:fresh-data` re-copies
    current prod data on demand (restart the dev server afterwards — it
    still holds the old file open).

@@ -48,4 +48,6 @@ fi
 
 # --strictPort: the workflow hands the user http://localhost:5173; failing
 # loudly beats vite silently moving to 5174.
-DATA_DIR=$DEV_DIR exec npx vite dev --strictPort
+# --host: also listen on the LAN so a phone on the same network can open
+# the dev server at http://<this-mac's-ip>:5173 (vite prints the URL).
+DATA_DIR=$DEV_DIR exec npx vite dev --strictPort --host
